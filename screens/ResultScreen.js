@@ -1,154 +1,245 @@
-import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import wordList from '../logic/wordList';
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { usePractice } from '../context/PracticeContext';
 
 export default function ResultScreen({ navigation, route }) {
-  const { word, heard, success, score, wordIndex = 0 } = route.params ?? {};
+  const { levelId = 1, levelTitle = '' } = route.params ?? {};
+  const { levels } = usePractice();
+  
+  const level = levels.find(l => l.id === levelId) ?? levels[0];
 
-  const roundedScore = Math.round((score ?? 0) * 100);
-  const message = success ? 'Harika söyledin! 🎉' : 'Neredeyse oldu, tekrar deneyelim 💪';
+  // Başarı istatistiklerini hesapla
+  const stats = useMemo(() => {
+    const totalWords = level.words.length;
+    const correctCount = level.progress.filter(status => status === 'success').length;
+    const incorrectCount = level.progress.filter(status => status === 'fail').length;
+    const successRate = totalWords > 0 ? Math.round((correctCount / totalWords) * 100) : 0;
+    
+    return {
+      correctCount,
+      incorrectCount,
+      successRate,
+      totalWords,
+    };
+  }, [level]);
 
-  const handleRetry = () => {
-    navigation.navigate('Practice', { wordIndex });
-  };
-
-  const handleNext = () => {
-    const nextIndex = (wordIndex + 1) % wordList.length;
-    navigation.navigate('Practice', { wordIndex: nextIndex });
-  };
-
-  const handleRepeat = () => {
-    navigation.navigate('Practice', { wordIndex });
+  const handleGoToLevels = () => {
+    navigation.navigate('Levels');
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Sonuç</Text>
-      <View style={styles.card}>
-        <Text style={styles.wordLabel}>Kelime</Text>
-        <Text style={styles.word}>{word}</Text>
-        <Text style={[styles.message, success ? styles.good : styles.bad]}>{message}</Text>
-        {heard ? (
-          <Text style={[styles.heard, success ? styles.good : styles.bad]}>Duyulan: "{heard}"</Text>
-        ) : null}
-        <Text style={styles.score}>Skor: %{roundedScore}</Text>
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.header}>🎉 Bölüm Tamamlandı!</Text>
+      
+      <View style={styles.statsCard}>
+        <Text style={styles.statsTitle}>Başarı Oranı</Text>
+        <Text style={styles.successRate}>{stats.successRate}%</Text>
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{stats.correctCount}</Text>
+            <Text style={[styles.statLabel, styles.correct]}>Doğru</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{stats.incorrectCount}</Text>
+            <Text style={[styles.statLabel, styles.incorrect]}>Yanlış</Text>
+          </View>
+        </View>
       </View>
 
-      <View style={styles.buttons}>
-        {success ? (
-          <>
-            <ActionButton label="Tekrarla" onPress={handleRepeat} variant="secondary" />
-            <ActionButton label="Sonraki Kelime" onPress={handleNext} variant="primary" />
-          </>
-        ) : (
-          <>
-            <ActionButton label="Yeniden Dene" onPress={handleRetry} variant="secondary" />
-            <ActionButton label="Sonraki Kelime" onPress={handleNext} variant="primary" />
-          </>
-        )}
+      <View style={styles.wordsListCard}>
+        <Text style={styles.wordsListTitle}>Kelime Listesi</Text>
+        {level.words.map((word, index) => {
+          const status = level.progress[index];
+          const isSuccessful = status === 'success';
+          const isFailed = status === 'fail';
+          
+          if (!status || status === 'pending') return null;
+          
+          return (
+            <View
+              key={index}
+              style={[
+                styles.wordItem,
+                isSuccessful ? styles.wordItemSuccess : styles.wordItemFail,
+              ]}
+            >
+              <View style={styles.wordItemLeft}>
+                <Text style={styles.wordItemIcon}>
+                  {isSuccessful ? '✓' : '✗'}
+                </Text>
+                <Text style={styles.wordItemWord}>{word}</Text>
+              </View>
+              <Text style={styles.wordItemHeard}>
+                {isSuccessful ? 'Başarılı' : 'Başarısız'}
+              </Text>
+            </View>
+          );
+        })}
       </View>
-    </View>
+
+      <Pressable
+        onPress={handleGoToLevels}
+        style={({ pressed }) => [
+          styles.button,
+          pressed && styles.buttonPressed,
+        ]}
+      >
+        <Text style={styles.buttonLabel}>Bölümler Sayfasına Git</Text>
+      </Pressable>
+    </ScrollView>
   );
 }
 
-function ActionButton({ label, onPress, variant }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.button,
-        variant === 'primary' ? styles.primary : styles.secondary,
-        pressed ? styles.pressed : null,
-      ]}
-    >
-      <Text style={styles.buttonLabel}>{label}</Text>
-    </Pressable>
-  );
-}
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#F2F9FF',
+    flexGrow: 1,
+    backgroundColor: '#F6FAFF',
     alignItems: 'center',
-    justifyContent: 'center',
     paddingHorizontal: 24,
+    paddingVertical: 48,
     gap: 32,
   },
   header: {
-    fontSize: 32,
-    fontWeight: '700',
+    fontSize: 36,
+    fontWeight: '800',
     color: '#3D315B',
+    textAlign: 'center',
   },
-  card: {
-    backgroundColor: '#FBE6A2',
+  statsCard: {
+    backgroundColor: '#FFF',
     paddingVertical: 32,
     paddingHorizontal: 24,
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: '#F3C969',
+    borderColor: '#E0D4F7',
     alignItems: 'center',
-    gap: 12,
-    minWidth: '80%',
+    gap: 16,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
   },
-  wordLabel: {
+  statsTitle: {
     fontSize: 18,
     color: '#3D315B',
     opacity: 0.7,
+    fontWeight: '600',
   },
-  word: {
-    fontSize: 40,
+  successRate: {
+    fontSize: 64,
+    fontWeight: '800',
+    color: '#7059FF',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 32,
+    marginTop: 8,
+  },
+  statItem: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  statValue: {
+    fontSize: 32,
     fontWeight: '700',
     color: '#3D315B',
-    textTransform: 'uppercase',
   },
-  message: {
-    fontSize: 24,
-    color: '#3D315B',
-    textAlign: 'center',
+  statLabel: {
+    fontSize: 16,
+    fontWeight: '600',
   },
-  score: {
-    fontSize: 20,
-    color: '#3D315B',
-  },
-  heard: {
-    fontSize: 18,
-    color: '#3D315B',
-    opacity: 0.85,
-  },
-  good: {
+  correct: {
     color: '#2E7D32',
-    fontWeight: '700',
   },
-  bad: {
+  incorrect: {
     color: '#C62828',
+  },
+  wordsListCard: {
+    backgroundColor: '#FFF',
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: '#E0D4F7',
+    width: '100%',
+    maxWidth: 400,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
+  },
+  wordsListTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#3D315B',
+    marginBottom: 8,
+  },
+  wordItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+  },
+  wordItemSuccess: {
+    backgroundColor: '#E8F5E9',
+    borderColor: '#81C784',
+  },
+  wordItemFail: {
+    backgroundColor: '#FFEBEE',
+    borderColor: '#E57373',
+  },
+  wordItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  wordItemIcon: {
+    fontSize: 20,
     fontWeight: '700',
   },
-  buttons: {
-    width: '100%',
-    gap: 16,
+  wordItemWord: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#3D315B',
+  },
+  wordItemHeard: {
+    fontSize: 16,
+    color: '#3D315B',
+    opacity: 0.7,
+    fontStyle: 'italic',
   },
   button: {
+    width: '100%',
+    maxWidth: 400,
     paddingVertical: 18,
     borderRadius: 20,
     borderWidth: 2,
+    backgroundColor: '#7059FF',
+    borderColor: '#5A44CC',
     alignItems: 'center',
+    shadowColor: '#7059FF',
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
   },
-  primary: {
-    backgroundColor: '#A3CEF1',
-    borderColor: '#6096BA',
-  },
-  secondary: {
-    backgroundColor: '#E8E4F2',
-    borderColor: '#C2BBF0',
-  },
-  pressed: {
+  buttonPressed: {
     opacity: 0.85,
     transform: [{ scale: 0.98 }],
   },
   buttonLabel: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: '#3D315B',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFF',
   },
 });
+

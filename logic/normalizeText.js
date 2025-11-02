@@ -3,8 +3,8 @@ export default function normalizeText(input) {
   return String(input)
     .toLowerCase()
     .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .replace(/[^a-z--\uFFFFğüşöçıâîû]/g, ' ') // keep Turkish letters approximated
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }

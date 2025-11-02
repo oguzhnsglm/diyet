@@ -11,8 +11,8 @@ import {
 import { useFocusEffect, useRoute, useNavigation } from '@react-navigation/native';
 import WordCard from '../components/WordCard';
 import RecordButton from '../components/RecordButton';
-import wordList from '../logic/wordList';
 import evalPronunciation from '../logic/evalPronunciation';
+import { usePractice } from '../context/PracticeContext';
 
 const FINALIZE_DELAY = 500;
 let VoiceModule = null;
@@ -20,18 +20,20 @@ let VoiceModule = null;
 export default function PracticeScreen() {
   const route = useRoute();
   const navigation = useNavigation();
-  const [currentIndex, setCurrentIndex] = useState(
-    typeof route.params?.wordIndex === 'number' ? route.params.wordIndex : 0,
-  );
+  const { levelId = 1 } = route.params ?? {};
+  const { levels, setWordStatus } = usePractice();
+  
+  const level = levels.find(l => l.id === levelId) ?? levels[0];
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [recognizedText, setRecognizedText] = useState('');
-  const [lastResult, setLastResult] = useState(null); // { heard, score, isSuccessful }
+  const [lastResult, setLastResult] = useState(null);
 
-  const recognitionRef = useRef(null); // Web SpeechRecognition instance
+  const recognitionRef = useRef(null);
   const silenceTimerRef = useRef(null);
   const latestTextRef = useRef('');
 
-  const currentWord = wordList[currentIndex % wordList.length];
+  const currentWord = level.words[currentIndex] ?? level.words[0];
 
   const clearSilenceTimer = useCallback(() => {
     if (silenceTimerRef.current) {
@@ -49,7 +51,8 @@ export default function PracticeScreen() {
       }
       setIsRecording(false);
       const { score, isSuccessful } = evalPronunciation(currentWord, clean);
-      setLastResult({ heard: clean, score, isSuccessful });
+      const result = { word: currentWord, heard: clean, score, isSuccessful };
+      setLastResult(result);
     },
     [clearSilenceTimer, currentWord, lastResult],
   );
@@ -275,7 +278,23 @@ export default function PracticeScreen() {
   };
 
   const goToNextWord = () => {
-    const nextIndex = (currentIndex + 1) % wordList.length;
+    // Mevcut kelimenin sonucunu context'e kaydet
+    if (lastResult) {
+      setWordStatus(levelId, currentIndex, lastResult.isSuccessful ? 'success' : 'fail');
+    }
+    
+    const nextIndex = currentIndex + 1;
+    
+    // Tüm kelimeler bitti mi kontrol et
+    if (nextIndex >= level.words.length) {
+      // Bölüm tamamlandı, sonuç ekranına git
+      navigation.navigate('Result', {
+        levelId: levelId,
+        levelTitle: level.title,
+      });
+      return;
+    }
+    
     setCurrentIndex(nextIndex);
     resetForRetry();
   };
@@ -283,6 +302,9 @@ export default function PracticeScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Konuşma Pratiği</Text>
+      <Text style={styles.progress}>
+        Kelime {currentIndex + 1} / {level.words.length}
+      </Text>
       <WordCard
         word={currentWord}
         subText={recognizedText}
@@ -353,6 +375,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#3D315B',
     letterSpacing: 0.5,
+  },
+  progress: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#7059FF',
+    marginTop: -12,
   },
   instruction: {
     fontSize: 22,

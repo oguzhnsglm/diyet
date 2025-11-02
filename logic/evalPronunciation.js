@@ -15,3 +15,4 @@ export default function evalPronunciation(expected, recognized) {
     isSuccessful: score >= 0.6,
   };
 }
+
