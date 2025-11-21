@@ -1,172 +1,133 @@
-import React from 'react';
-import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
+import React, { useContext } from 'react';
+import { SafeAreaView, ScrollView, Text, View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { DietContext } from '../context/DietContext';
+import { SummaryCard, PrimaryButton } from '../components/common';
+import { formatDateTR, getTodayISO } from '../logic/utils';
+import { styles, colors } from '../styles';
 
-const heroIllustration =
-  'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=600&q=80';
+const HomeScreen = ({ navigation }) => {
+  const { user, meals, refreshTodayMeals, reloadUser, loading } = useContext(DietContext);
 
-export default function HomeScreen() {
-  const navigation = useNavigation();
+  useFocusEffect(
+    React.useCallback(() => {
+      refreshTodayMeals();
+      reloadUser();
+    }, [refreshTodayMeals, reloadUser])
+  );
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.containerCenter}>
+        <Text style={{ color: colors.primary, fontSize: 16 }}>Yükleniyor...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (!user) {
+    return (
+      <SafeAreaView style={styles.containerCenter}>
+        <Text style={{ color: colors.text, marginBottom: 16, fontSize: 16 }}>Kullanıcı profili bulunamadı.</Text>
+        <PrimaryButton label="Yeni profil oluştur" onPress={() => navigation.replace('Onboarding')} />
+      </SafeAreaView>
+    );
+  }
+
+  const totalCalories = meals.reduce((sum, m) => sum + Number(m.calories || 0), 0);
+  const totalSugar = meals.reduce((sum, m) => sum + Number(m.sugarGrams || 0), 0);
+  const remainingCalories = user.dailyCalorieTarget - totalCalories;
+  const remainingSugar = user.dailySugarLimitGr - totalSugar;
+  const overLimit = remainingCalories < 0 || remainingSugar < 0;
 
   return (
-    <LinearGradient colors={['#f6f0ff', '#efe6ff', '#f7f5ff']} style={styles.container}>
-      <View style={styles.hero}>
-        <View style={styles.heroText}>
-          <Text style={styles.badge}>Cocuk Dostu Telaffuz</Text>
-          <Text style={styles.title}>Kelime macerasina hazir misin?</Text>
-          <Text style={styles.subtitle}>
-            Eglenceli konusma pratigi, renkli geri bildirimler ve adim adim ilerleme.
-          </Text>
-          <View style={styles.buttonRow}>
-            <GradientButton
-              label="Konusma Pratigine Basla"
-              onPress={() => navigation.navigate('Levels')}
-              size="large"
+    <SafeAreaView style={styles.container}>
+      <LinearGradient colors={[colors.bgGradientStart, colors.bgGradientEnd]} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={styles.content}>
+          <View style={[styles.card, styles.glassCard]}>
+            <Text style={styles.title}>Merhaba {user.name}! 👋</Text>
+            <Text style={styles.subtitle}>{formatDateTR(getTodayISO())}</Text>
+            <Text style={styles.muted}>Günlük beslenme hedeflerinizi takip edin</Text>
+          </View>
+
+          <View style={styles.cardRow}>
+            <SummaryCard
+              title="Toplam alınan kalori"
+              value={`${totalCalories} kcal`}
+              subtitle={`Hedef: ${user.dailyCalorieTarget} kcal`}
+              danger={remainingCalories < 0}
             />
-            <GradientButton
-              label="Giris Yap"
-              colors={['rgba(255,255,255,0.9)', 'rgba(232,224,255,0.9)']}
-              textColor="#5633a5"
-              onPress={() => navigation.navigate('Login')}
+            <SummaryCard
+              title="Kalan günlük kalori"
+              value={`${remainingCalories} kcal`}
+              subtitle={remainingCalories < 0 ? 'Hedef aşıldı' : 'Dengeyi koru'}
+              danger={remainingCalories < 0}
             />
           </View>
-        </View>
-        <View style={styles.illustrationWrapper}>
-          <LinearGradient
-            colors={['rgba(130,106,255,0.25)', 'rgba(182,147,255,0.15)']}
-            style={styles.illustrationBorder}
-          >
-            <Image source={{ uri: heroIllustration }} style={styles.heroImage} />
-          </LinearGradient>
-        </View>
-      </View>
 
-      <View style={styles.ctaRow}>
-        <GradientButton
-          label="Hemen Kayit Ol"
-          onPress={() => navigation.navigate('Register')}
-          size="large"
-        />
-      </View>
-    </LinearGradient>
-  );
-}
+          <View style={styles.cardRow}>
+            <SummaryCard
+              title="Alınan şeker"
+              value={`${totalSugar} gr`}
+              subtitle={`Limit: ${user.dailySugarLimitGr} gr`}
+              danger={remainingSugar < 0}
+            />
+            <SummaryCard
+              title="Kalan şeker limiti"
+              value={`${remainingSugar} gr`}
+              subtitle={remainingSugar < 0 ? 'Limit aşıldı' : 'Güvenli bölge'}
+              danger={remainingSugar < 0}
+            />
+          </View>
 
-function GradientButton({ label, onPress, colors = ['#7059ff', '#ae7bff'], textColor = '#fff', size = 'medium' }) {
-  return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.buttonShell, pressed && styles.buttonPressed]}>
-      <LinearGradient
-        colors={colors}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.button, size === 'large' ? styles.buttonLarge : styles.buttonMedium]}
-      >
-        <Text style={[styles.buttonLabel, { color: textColor }]}>{label}</Text>
+          {overLimit && (
+            <View style={styles.warningBox}>
+              <Text style={styles.warningText}>
+                Günlük kalori veya şeker limitini aştın. Daha hafif, düşük glisemik seçenekler tercih ederek
+                obezite/diyabet riskini azalt.
+              </Text>
+            </View>
+          )}
+
+          <Text style={styles.sectionTitle}>Bugünkü öğünler</Text>
+          {meals.length === 0 ? (
+            <Text style={styles.muted}>Henüz öğün eklenmedi.</Text>
+          ) : (
+            meals.map((m) => (
+              <View key={m.id} style={styles.mealItem}>
+                <Text style={styles.mealTitle}>
+                  {m.mealType.toUpperCase()} • {m.foodName}
+                </Text>
+                <Text style={styles.mealMeta}>
+                  {m.calories} kcal • {m.sugarGrams || 0} gr şeker
+                </Text>
+              </View>
+            ))
+          )}
+
+          <Text style={styles.sectionTitle}>Hızlı İşlemler</Text>
+          <View style={{ gap: 12 }}>
+            <PrimaryButton label="Öğün Ekle" onPress={() => navigation.navigate('AddMeal')} />
+            <PrimaryButton
+              label="Akıllı Öneri Al"
+              variant="outline"
+              onPress={() =>
+                navigation.navigate('Recommendations', {
+                  remainingCalories,
+                  remainingSugar,
+                })
+              }
+            />
+            <PrimaryButton 
+              label="Profil Ayarları" 
+              variant="outline"
+              onPress={() => navigation.navigate('Profile')} 
+            />
+          </View>
+        </ScrollView>
       </LinearGradient>
-    </Pressable>
+    </SafeAreaView>
   );
-}
+};
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingVertical: 48,
-  },
-  hero: {
-    flex: 1,
-    flexDirection: 'row',
-    gap: 32,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  heroText: {
-    flex: 1,
-    gap: 20,
-  },
-  badge: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(112, 89, 255, 0.15)',
-    color: '#5c3cd6',
-    fontWeight: '700',
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 999,
-    letterSpacing: 0.6,
-  },
-  title: {
-    fontSize: 34,
-    fontWeight: '800',
-    color: '#2f184f',
-    letterSpacing: 0.8,
-  },
-  subtitle: {
-    fontSize: 18,
-    color: '#4d3778',
-    lineHeight: 26,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: 16,
-    flexWrap: 'wrap',
-  },
-  illustrationWrapper: {
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#6a44df',
-    shadowOpacity: 0.25,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 12,
-  },
-  illustrationBorder: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 110,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  heroImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  buttonShell: {
-    borderRadius: 18,
-    overflow: 'hidden',
-  },
-  button: {
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 18,
-    shadowColor: '#5c3cd6',
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 6,
-  },
-  buttonLarge: {
-    paddingVertical: 16,
-    paddingHorizontal: 28,
-  },
-  buttonMedium: {},
-  buttonLabel: {
-    fontSize: 18,
-    fontWeight: '700',
-    textAlign: 'center',
-    letterSpacing: 0.4,
-  },
-  buttonPressed: {
-    transform: [{ scale: 0.97 }],
-    opacity: 0.92,
-  },
-  ctaRow: {
-    marginTop: 36,
-    alignItems: 'center',
-  },
-});
+export default HomeScreen;

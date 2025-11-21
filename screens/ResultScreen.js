@@ -10,7 +10,7 @@ export default function ResultScreen({ navigation, route }) {
 
   // Başarı istatistiklerini hesapla
   const stats = useMemo(() => {
-    const totalWords = level.words.length;
+    const totalWords = level.words.length;  
     const correctCount = level.progress.filter(status => status === 'success').length;
     const incorrectCount = level.progress.filter(status => status === 'fail').length;
     const successRate = totalWords > 0 ? Math.round((correctCount / totalWords) * 100) : 0;
