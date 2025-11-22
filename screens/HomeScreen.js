@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+﻿import React, { useContext } from 'react';
 import { SafeAreaView, ScrollView, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -45,7 +45,7 @@ const HomeScreen = ({ navigation }) => {
       <LinearGradient colors={[colors.bgGradientStart, colors.bgGradientEnd]} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.content}>
           <View style={[styles.card, styles.glassCard]}>
-            <Text style={styles.title}>Merhaba {user.name}! 👋</Text>
+            <Text style={styles.title}>Merhaba {user.name}! </Text>
             <Text style={styles.subtitle}>{formatDateTR(getTodayISO())}</Text>
             <Text style={styles.muted}>Günlük beslenme hedeflerinizi takip edin</Text>
           </View>
@@ -96,10 +96,10 @@ const HomeScreen = ({ navigation }) => {
             meals.map((m) => (
               <View key={m.id} style={styles.mealItem}>
                 <Text style={styles.mealTitle}>
-                  {m.mealType.toUpperCase()} • {m.foodName}
+                  {m.mealType.toUpperCase()}  {m.foodName}
                 </Text>
                 <Text style={styles.mealMeta}>
-                  {m.calories} kcal • {m.sugarGrams || 0} gr şeker
+                  {m.calories} kcal  {m.sugarGrams || 0} gr şeker
                 </Text>
               </View>
             ))
@@ -107,7 +107,15 @@ const HomeScreen = ({ navigation }) => {
 
           <Text style={styles.sectionTitle}>Hızlı İşlemler</Text>
           <View style={{ gap: 12 }}>
-            <PrimaryButton label="Öğün Ekle" onPress={() => navigation.navigate('AddMeal')} />
+            <PrimaryButton 
+              label=" Diyet Planı Oluştur" 
+              onPress={() => navigation.navigate('DietPlan')} 
+            />
+            <PrimaryButton 
+              label="Öğün Ekle" 
+              variant="outline"
+              onPress={() => navigation.navigate('AddMeal')} 
+            />
             <PrimaryButton
               label="Akıllı Öneri Al"
               variant="outline"
@@ -118,10 +126,10 @@ const HomeScreen = ({ navigation }) => {
                 })
               }
             />
-            <PrimaryButton 
-              label="Profil Ayarları" 
+            <PrimaryButton
+              label="Profil Ayarları"
               variant="outline"
-              onPress={() => navigation.navigate('Profile')} 
+              onPress={() => navigation.navigate('Profile')}
             />
           </View>
         </ScrollView>
