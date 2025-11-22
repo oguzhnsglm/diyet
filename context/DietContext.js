@@ -9,22 +9,27 @@ export const DietProvider = ({ children }) => {
   const [meals, setMeals] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const init = async () => {
-      const storedUser = await getUser();
-      setUser(storedUser);
-      await refreshTodayMeals();
-      setLoading(false);
-    };
-    init();
-  }, []);
-
   const refreshTodayMeals = async () => {
     const today = getTodayISO();
     const todaysMeals = await getMealsByDate(today);
     setMeals(todaysMeals);
     return todaysMeals;
   };
+
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const storedUser = await getUser();
+        setUser(storedUser);
+        await refreshTodayMeals();
+      } catch (error) {
+        console.error('Initialization error:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    init();
+  }, []);
 
   const saveUserData = async (data) => {
     await saveUser(data);
@@ -51,7 +56,7 @@ export const DietProvider = ({ children }) => {
         return u;
       },
     }),
-    [user, meals, loading]
+    [user, meals, loading, refreshTodayMeals]
   );
 
   return <DietContext.Provider value={value}>{children}</DietContext.Provider>;
