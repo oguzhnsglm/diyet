@@ -40,10 +40,10 @@ const HomeScreen = ({ navigation }) => {
   const remainingSugar = user.dailySugarLimitGr - totalSugar;
 
   // Color logic per spec
-  const calorieColor = '#1d4ed8'; // Blue for total taken
-  const remainingCalorieColor = remainingCalories < 0 ? '#dc2626' : remainingCalories < 300 ? '#f97316' : '#16a34a'; // green / orange / red
-  const sugarTakenColor = '#7e22ce'; // Purple
-  const remainingSugarColor = remainingSugar < 0 ? '#dc2626' : remainingSugar < 10 ? '#dc2626' : '#16a34a'; // Red if <10 or exceeded else green
+  const calorieColor = '#0284c7'; // Blue for total taken (HTML spec)
+  const remainingCalorieColor = '#16a34a'; // Green (HTML spec)
+  const sugarTakenColor = '#a855f7'; // Purple (HTML spec)
+  const remainingSugarColor = '#16a34a'; // Green (HTML spec default)
 
   const overLimit = remainingCalories < 0 || remainingSugar < 0;
 
@@ -127,33 +127,33 @@ const HomeScreen = ({ navigation }) => {
                 </View>
               )}
             </View>
-            <Text style={dashboardStyles.welcomeSubtitle}>Günlük hedeflerini takip et ve dengeni koru.</Text>
+            <Text style={dashboardStyles.welcomeSubtitle}>Günlük beslenme hedeflerinizi takip edin</Text>
           </View>
 
           {/* Stats Grid */}
           <View style={dashboardStyles.statsGrid}>
             <StatCard
-              label="Toplam Alınan"
+              label="TOPLAM ALINAN KALORİ"
               value={`${totalCalories} kcal`}
               sub={`Hedef: ${user.dailyCalorieTarget} kcal`}
               color={calorieColor}
             />
             <StatCard
-              label="Kalan Kalori"
+              label="KALAN GÜNLÜK KALORİ"
               value={`${remainingCalories} kcal`}
-              sub={remainingCalories < 0 ? 'Hedef aşıldı' : remainingCalories < 300 ? 'Dikkat yaklaşma' : 'Sağlıklı aralık'}
+              sub="Dengeyi koru"
               color={remainingCalorieColor}
             />
             <StatCard
-              label="Alınan Şeker"
+              label="ALINAN ŞEKER"
               value={`${totalSugar} gr`}
               sub={`Limit: ${user.dailySugarLimitGr} gr`}
               color={sugarTakenColor}
             />
             <StatCard
-              label="Kalan Şeker"
+              label="KALAN ŞEKER LİMİTİ"
               value={`${remainingSugar} gr`}
-              sub={remainingSugar < 0 ? 'Limit aşıldı' : remainingSugar < 10 ? 'Kritik seviyeye yakın' : 'Kontrol altında'}
+              sub="Güvenli bölge"
               color={remainingSugarColor}
             />
           </View>
@@ -207,32 +207,31 @@ export default HomeScreen;
 const dashboardStyles = StyleSheet.create({
   welcomeCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    borderRadius: 16,
     padding: 24,
-    marginBottom: 28,
+    marginBottom: 24,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.06,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
+    borderColor: '#e5e7eb',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 25,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 4,
   },
   welcomeTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#0f172a',
+    color: '#111827',
     marginBottom: 4,
   },
   welcomeDate: {
-    fontSize: 13,
-    color: '#64748b',
-    marginBottom: 8,
+    fontSize: 14,
+    color: '#6b7280',
   },
   welcomeSubtitle: {
-    fontSize: 14,
-    color: '#475569',
-    marginTop: 4,
+    fontSize: 13,
+    color: '#9ca3af',
+    marginTop: 6,
   },
   badgeDanger: {
     backgroundColor: '#ffe4e6',
@@ -255,32 +254,33 @@ const dashboardStyles = StyleSheet.create({
   statCard: {
     backgroundColor: '#fff',
     borderRadius: 16,
-    padding: 16,
+    padding: 20,
     width: '48%',
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#f1f5f9',
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.04,
-    shadowRadius: 12,
+    borderColor: '#e5e7eb',
+    shadowColor: '#000',
+    shadowOpacity: 0.02,
+    shadowRadius: 6,
     shadowOffset: { width: 0, height: 4 },
     elevation: 2,
   },
   statLabel: {
     fontSize: 12,
     fontWeight: '600',
-    letterSpacing: 0.4,
-    color: '#64748b',
-    marginBottom: 6,
+    letterSpacing: 0.5,
+    color: '#9ca3af',
+    textTransform: 'uppercase',
+    marginBottom: 8,
   },
   statValue: {
     fontSize: 24,
-    fontWeight: '800',
+    fontWeight: '700',
     marginBottom: 4,
   },
   statSub: {
-    fontSize: 12,
-    color: '#94a3b8',
+    fontSize: 13,
+    color: '#6b7280',
   },
   actionsRow: {
     flexDirection: 'row',
