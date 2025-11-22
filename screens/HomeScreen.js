@@ -1,5 +1,5 @@
 ﻿import React, { useContext } from 'react';
-import { SafeAreaView, ScrollView, Text, View } from 'react-native';
+import { SafeAreaView, ScrollView, Text, View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { DietContext } from '../context/DietContext';
@@ -38,100 +38,164 @@ const HomeScreen = ({ navigation }) => {
   const totalSugar = meals.reduce((sum, m) => sum + Number(m.sugarGrams || 0), 0);
   const remainingCalories = user.dailyCalorieTarget - totalCalories;
   const remainingSugar = user.dailySugarLimitGr - totalSugar;
+
+  // Color logic per spec
+  const calorieColor = '#1d4ed8'; // Blue for total taken
+  const remainingCalorieColor = remainingCalories < 0 ? '#dc2626' : remainingCalories < 300 ? '#f97316' : '#16a34a'; // green / orange / red
+  const sugarTakenColor = '#7e22ce'; // Purple
+  const remainingSugarColor = remainingSugar < 0 ? '#dc2626' : remainingSugar < 10 ? '#dc2626' : '#16a34a'; // Red if <10 or exceeded else green
+
   const overLimit = remainingCalories < 0 || remainingSugar < 0;
+
+  const handleWaterTracking = () => {
+    Alert.alert('Su Takibi', 'Su takibi henüz eklenmedi. Yakında geliyor!');
+  };
+
+  const StatCard = ({ label, value, sub, color }) => (
+    <View style={dashboardStyles.statCard}>
+      <Text style={dashboardStyles.statLabel}>{label}</Text>
+      <Text style={[dashboardStyles.statValue, { color }]}>{value}</Text>
+      {!!sub && <Text style={dashboardStyles.statSub}>{sub}</Text>}
+    </View>
+  );
+
+  const ActionCard = ({ title, desc, onPress, accent }) => (
+    <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={[dashboardStyles.actionCard, { borderColor: accent }]}> 
+      <View style={dashboardStyles.actionAccentBar} />
+      <Text style={dashboardStyles.actionTitle}>{title}</Text>
+      <Text style={dashboardStyles.actionDesc}>{desc}</Text>
+    </TouchableOpacity>
+  );
+
+  const featureOptions = [
+    {
+      id: 1,
+      title: '🍽️ Diyet Planı Oluştur',
+      description: 'Sağlıklı yiyeceklerle kendi diyet planını oluştur',
+      color: '#4CAF50',
+      action: () => navigation.navigate('DietPlanner'),
+    },
+    {
+      id: 2,
+      title: '🥗 Sağlıklı Tarifler',
+      description: 'Bowl tarifleri, şekersiz tatlılar ve daha fazlası',
+      color: '#FF9800',
+      action: () => navigation.navigate('HealthyRecipes'),
+    },
+    {
+      id: 3,
+      title: '🔍 Malzemeden Tarif Bul',
+      description: 'Elindeki malzemelerle yapabileceğin tarifleri keşfet',
+      color: '#2196F3',
+      action: () => navigation.navigate('IngredientSearch'),
+    },
+  ];
 
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient colors={[colors.bgGradientStart, colors.bgGradientEnd]} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.content}>
-          <View style={[styles.card, styles.glassCard]}>
-            <Text style={styles.title}>Merhaba {user.name}! </Text>
-            <Text style={styles.subtitle}>{formatDateTR(getTodayISO())}</Text>
-            <Text style={styles.muted}>Günlük beslenme hedeflerinizi takip edin</Text>
+          {/* Large Feature Cards (added per request) */}
+          <View style={{ marginBottom: 24 }}>
+            {featureOptions.map(opt => (
+              <TouchableOpacity
+                key={opt.id}
+                activeOpacity={0.9}
+                onPress={opt.action}
+                style={[dashboardStyles.featureCard, { borderLeftColor: opt.color }]}
+              >
+                <View style={dashboardStyles.featureInner}>
+                  <Text style={dashboardStyles.featureTitle}>{opt.title}</Text>
+                  <Text style={dashboardStyles.featureDesc}>{opt.description}</Text>
+                  <View style={[dashboardStyles.featureBadge, { backgroundColor: opt.color }]}> 
+                    <Text style={dashboardStyles.featureBadgeText}>Başla →</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
           </View>
-
-          <View style={styles.cardRow}>
-            <SummaryCard
-              title="Toplam alınan kalori"
-              value={`${totalCalories} kcal`}
-              subtitle={`Hedef: ${user.dailyCalorieTarget} kcal`}
-              danger={remainingCalories < 0}
-            />
-            <SummaryCard
-              title="Kalan günlük kalori"
-              value={`${remainingCalories} kcal`}
-              subtitle={remainingCalories < 0 ? 'Hedef aşıldı' : 'Dengeyi koru'}
-              danger={remainingCalories < 0}
-            />
-          </View>
-
-          <View style={styles.cardRow}>
-            <SummaryCard
-              title="Alınan şeker"
-              value={`${totalSugar} gr`}
-              subtitle={`Limit: ${user.dailySugarLimitGr} gr`}
-              danger={remainingSugar < 0}
-            />
-            <SummaryCard
-              title="Kalan şeker limiti"
-              value={`${remainingSugar} gr`}
-              subtitle={remainingSugar < 0 ? 'Limit aşıldı' : 'Güvenli bölge'}
-              danger={remainingSugar < 0}
-            />
-          </View>
-
-          {overLimit && (
-            <View style={styles.warningBox}>
-              <Text style={styles.warningText}>
-                Günlük kalori veya şeker limitini aştın. Daha hafif, düşük glisemik seçenekler tercih ederek
-                obezite/diyabet riskini azalt.
-              </Text>
-            </View>
-          )}
-
-          <Text style={styles.sectionTitle}>Bugünkü öğünler</Text>
-          {meals.length === 0 ? (
-            <Text style={styles.muted}>Henüz öğün eklenmedi.</Text>
-          ) : (
-            meals.map((m) => (
-              <View key={m.id} style={styles.mealItem}>
-                <Text style={styles.mealTitle}>
-                  {m.mealType.toUpperCase()}  {m.foodName}
-                </Text>
-                <Text style={styles.mealMeta}>
-                  {m.calories} kcal  {m.sugarGrams || 0} gr şeker
-                </Text>
+          {/* Welcome Card */}
+          <View style={dashboardStyles.welcomeCard}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <View style={{ flex: 1 }}>
+                <Text style={dashboardStyles.welcomeTitle}>Merhaba {user.name}!</Text>
+                <Text style={dashboardStyles.welcomeDate}>{formatDateTR(getTodayISO())}</Text>
               </View>
-            ))
-          )}
+              {overLimit && (
+                <View style={dashboardStyles.badgeDanger}>
+                  <Text style={dashboardStyles.badgeDangerText}>Dikkat</Text>
+                </View>
+              )}
+            </View>
+            <Text style={dashboardStyles.welcomeSubtitle}>Günlük hedeflerini takip et ve dengeni koru.</Text>
+          </View>
 
-          <Text style={styles.sectionTitle}>Hızlı İşlemler</Text>
-          <View style={{ gap: 12 }}>
-            <PrimaryButton 
-              label=" Diyet Planı Oluştur" 
-              onPress={() => navigation.navigate('DietPlan')} 
+          {/* Stats Grid */}
+          <View style={dashboardStyles.statsGrid}>
+            <StatCard
+              label="Toplam Alınan"
+              value={`${totalCalories} kcal`}
+              sub={`Hedef: ${user.dailyCalorieTarget} kcal`}
+              color={calorieColor}
             />
-            <PrimaryButton 
-              label="Öğün Ekle" 
-              variant="outline"
-              onPress={() => navigation.navigate('AddMeal')} 
+            <StatCard
+              label="Kalan Kalori"
+              value={`${remainingCalories} kcal`}
+              sub={remainingCalories < 0 ? 'Hedef aşıldı' : remainingCalories < 300 ? 'Dikkat yaklaşma' : 'Sağlıklı aralık'}
+              color={remainingCalorieColor}
             />
-            <PrimaryButton
-              label="Akıllı Öneri Al"
-              variant="outline"
-              onPress={() =>
-                navigation.navigate('Recommendations', {
-                  remainingCalories,
-                  remainingSugar,
-                })
-              }
+            <StatCard
+              label="Alınan Şeker"
+              value={`${totalSugar} gr`}
+              sub={`Limit: ${user.dailySugarLimitGr} gr`}
+              color={sugarTakenColor}
             />
-            <PrimaryButton
-              label="Profil Ayarları"
-              variant="outline"
-              onPress={() => navigation.navigate('Profile')}
+            <StatCard
+              label="Kalan Şeker"
+              value={`${remainingSugar} gr`}
+              sub={remainingSugar < 0 ? 'Limit aşıldı' : remainingSugar < 10 ? 'Kritik seviyeye yakın' : 'Kontrol altında'}
+              color={remainingSugarColor}
             />
           </View>
+
+          {/* Action Cards */}
+            <Text style={styles.sectionTitle}>Hızlı İşlemler</Text>
+            <View style={dashboardStyles.actionsRow}>
+              <ActionCard
+                title="Diyet Planı"
+                desc="Günlük planını oluştur veya güncelle"
+                accent="#0ea5e9"
+                onPress={() => navigation.navigate('DietPlanner')}
+              />
+              <ActionCard
+                title="Öğün Ekle"
+                desc="Yediğin öğünü hemen kaydet"
+                accent="#6366f1"
+                onPress={() => navigation.navigate('AddMeal')}
+              />
+            </View>
+            <View style={dashboardStyles.actionsRow}>
+              <ActionCard
+                title="Öneriler"
+                desc="Akıllı beslenme tavsiyeleri al"
+                accent="#10b981"
+                onPress={() => navigation.navigate('Recommendations', { remainingCalories, remainingSugar })}
+              />
+              <ActionCard
+                title="Su Takibi"
+                desc="Günlük su tüketimini takip et"
+                accent="#38bdf8"
+                onPress={handleWaterTracking}
+              />
+            </View>
+            <View style={dashboardStyles.actionsRow}>
+              <ActionCard
+                title="Profil"
+                desc="Kişisel hedef ve bilgilerini düzenle"
+                accent="#f59e0b"
+                onPress={() => navigation.navigate('Profile')}
+              />
+            </View>
         </ScrollView>
       </LinearGradient>
     </SafeAreaView>
@@ -139,3 +203,160 @@ const HomeScreen = ({ navigation }) => {
 };
 
 export default HomeScreen;
+
+const dashboardStyles = StyleSheet.create({
+  welcomeCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 24,
+    marginBottom: 28,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
+  },
+  welcomeTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#0f172a',
+    marginBottom: 4,
+  },
+  welcomeDate: {
+    fontSize: 13,
+    color: '#64748b',
+    marginBottom: 8,
+  },
+  welcomeSubtitle: {
+    fontSize: 14,
+    color: '#475569',
+    marginTop: 4,
+  },
+  badgeDanger: {
+    backgroundColor: '#ffe4e6',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  badgeDangerText: {
+    color: '#dc2626',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+  },
+  statCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    width: '48%',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  statLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.4,
+    color: '#64748b',
+    marginBottom: 6,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  statSub: {
+    fontSize: 12,
+    color: '#94a3b8',
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  actionCard: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    padding: 18,
+    width: '48%',
+    borderWidth: 1,
+    position: 'relative',
+    overflow: 'hidden',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  actionAccentBar: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 6,
+    backgroundColor: 'rgba(0,0,0,0.06)',
+  },
+  actionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0f172a',
+    marginBottom: 6,
+  },
+  actionDesc: {
+    fontSize: 12,
+    color: '#64748b',
+    lineHeight: 16,
+  },
+  featureCard: {
+    borderRadius: 16,
+    marginBottom: 18,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+    borderLeftWidth: 6,
+    backgroundColor: '#fff',
+  },
+  featureInner: {
+    padding: 20,
+    backgroundColor: '#FFFFFF',
+  },
+  featureTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#2C3E50',
+    marginBottom: 8,
+  },
+  featureDesc: {
+    fontSize: 14,
+    color: '#7F8C8D',
+    marginBottom: 14,
+    lineHeight: 20,
+  },
+  featureBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  featureBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+});
