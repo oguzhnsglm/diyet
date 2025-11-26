@@ -1,10 +1,11 @@
-﻿import React, { useState, useMemo } from 'react';
+﻿﻿import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView, ScrollView, Text, View, Pressable, StyleSheet, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import NutritionTracker from './NutritionTracker';
+import { addQuickAction, getQuickActions } from '../logic/quickActions';
 
-const FOOD_DATABASE = [
+const FOOD_DATABASE_BASE = [
   // Kahvaltı - Sadece Sağlıklı
   { id: 1, name: 'Tam buğday ekmeği (1 dilim)', calories: 70, sugar: 1, protein: 3, fat: 1, category: 'Kahvaltı', recommended: true, advice: 'Önerilen - Düşük glisemik indeks' },
   { id: 2, name: 'Yumurta (1 adet)', calories: 78, sugar: 0.6, protein: 6.3, fat: 5.3, category: 'Kahvaltı', recommended: true, advice: 'Önerilen - Protein kaynağı' },
@@ -43,14 +44,54 @@ const FOOD_DATABASE = [
   { id: 36, name: 'Humus (2 yemek kaşığı)', calories: 70, sugar: 1, protein: 2, fat: 3, category: 'Atıştırmalık', recommended: true, advice: 'Önerilen - Protein ve lif içerir' },
 ];
 
+const KITCHEN_MEASURE_HINTS = {
+  3: '≈ 2 yemek kaşığı rendelenmiş',
+  5: '≈ 1 su bardağı',
+  7: '≈ avuç içi büyüklüğünde 1 parça',
+  8: '≈ 5 yemek kaşığı pişmiş',
+  9: '≈ 5 yemek kaşığı pişmiş',
+  10: '≈ 4 yemek kaşığı pişmiş',
+  11: '≈ küçük servis kasesi (1 su bardağı)',
+  12: '≈ 1 kepçe',
+  13: '≈ 3 küçük köfte',
+  16: '≈ orta boy kase',
+  17: '≈ orta boy kase',
+  18: '≈ 1 su bardağı haşlanmış',
+  19: '≈ küçük servis kasesi',
+  20: '≈ 1 avuç (23 adet)',
+  21: '≈ 7 bütün ceviz içi',
+  30: '≈ avuç içi büyüklüğünde 1 fileto',
+  31: '≈ orta boy kase',
+  32: '≈ 1 su bardağı',
+  34: '≈ 1 avuç (20 adet)',
+  35: '≈ 2 orta boy havuç',
+  36: '≈ 2 dolu yemek kaşığı',
+};
+
+const FOOD_DATABASE = FOOD_DATABASE_BASE.map(food => ({
+  ...food,
+  kitchenMeasure: KITCHEN_MEASURE_HINTS[food.id],
+}));
+
+const QUICK_CATEGORY = 'foods';
+
 const SimpleDietPlanScreen = () => {
   const navigation = useNavigation();
   const [selectedFoods, setSelectedFoods] = useState([]);
   const [activeCategory, setActiveCategory] = useState('Tümü');
+  const [quickFoods, setQuickFoods] = useState([]);
 
   const categories = ['Tümü', 'Kahvaltı', 'Ana Yemek', 'Salata', 'Sebze', 'Meyve', 'Atıştırmalık'];
   const dailyCalorieTarget = 2000;
   const dailySugarLimit = 50;
+
+  useEffect(() => {
+    const loadQuick = async () => {
+      const stored = await getQuickActions(QUICK_CATEGORY);
+      setQuickFoods(stored);
+    };
+    loadQuick();
+  }, []);
 
   const filteredFoods = useMemo(() => {
     if (activeCategory === 'Tümü') return FOOD_DATABASE;
@@ -99,13 +140,39 @@ const SimpleDietPlanScreen = () => {
         sugar: totalSugar,
         protein: totalProtein,
         fat: totalFat,
-      }
+      },
+      calorieLimit: dailyCalorieTarget,
     });
     setSelectedFoods([]);
   };
 
   const clearSelection = () => {
     setSelectedFoods([]);
+  };
+
+  const handleQuickAddFood = (food) => {
+    const exists = selectedFoods.find((f) => f.id === food.id);
+    if (exists) {
+      setSelectedFoods(
+        selectedFoods.map((f) => (f.id === food.id ? { ...f, count: (f.count || 1) + 1 } : f))
+      );
+    } else {
+      setSelectedFoods([...selectedFoods, { ...food, count: 1 }]);
+    }
+  };
+
+  const handleSaveFoodFavorite = async (food) => {
+    const payload = {
+      id: food.id,
+      name: food.name,
+      calories: food.calories,
+      sugar: food.sugar,
+      protein: food.protein,
+      fat: food.fat,
+      category: food.category,
+    };
+    const updated = await addQuickAction(QUICK_CATEGORY, payload);
+    setQuickFoods(updated);
   };
 
   return (
@@ -119,6 +186,24 @@ const SimpleDietPlanScreen = () => {
             protein={totalProtein}
             fat={totalFat}
           />
+
+          {quickFoods.length > 0 && (
+            <View style={styles.quickSection}>
+              <Text style={styles.sectionTitle}>Sık Seçtiklerin</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {quickFoods.map((food) => (
+                  <Pressable
+                    key={food.id}
+                    style={styles.quickChip}
+                    onPress={() => handleQuickAddFood(food)}
+                  >
+                    <Text style={styles.quickChipTitle}>{food.name}</Text>
+                    <Text style={styles.quickChipInfo}>{food.calories} kcal • {food.sugar} gr şeker</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          )}
 
           {/* Seçilen Yiyecekler */}
           {selectedFoods.length > 0 && (
@@ -165,8 +250,14 @@ const SimpleDietPlanScreen = () => {
                   <View style={{ flex: 1 }}>
                     <Text style={styles.foodName}>{food.name}</Text>
                     <Text style={styles.foodMeta}>{food.calories} kcal | {food.sugar} gr şeker | {food.protein || 0} gr protein | {food.fat || 0} gr yağ</Text>
+                    {food.kitchenMeasure && (
+                      <Text style={styles.foodMeasure}>{food.kitchenMeasure}</Text>
+                    )}
                     <Text style={styles.foodAdvice}>{food.advice}</Text>
                   </View>
+                  <Pressable style={styles.quickSaveBtn} onPress={() => handleSaveFoodFavorite(food)}>
+                    <Text style={styles.quickSaveText}>☆</Text>
+                  </Pressable>
                   <View style={styles.counterBox}>
                     <Pressable
                       style={styles.counterBtn}
@@ -333,6 +424,11 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     marginTop: 2,
   },
+  foodMeasure: {
+    fontSize: 12,
+    color: '#374151',
+    marginBottom: 2,
+  },
   saveButton: {
     backgroundColor: '#4CAF50',
     borderRadius: 12,
@@ -352,6 +448,29 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  quickSection: {
+    marginTop: 12,
+    marginBottom: 12,
+  },
+  quickChip: {
+    backgroundColor: '#E8F5E9',
+    padding: 12,
+    borderRadius: 14,
+    marginRight: 10,
+    minWidth: 180,
+    borderWidth: 1,
+    borderColor: '#c8e6c9',
+  },
+  quickChipTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1b5e20',
+  },
+  quickChipInfo: {
+    fontSize: 12,
+    color: '#2e7d32',
+    marginTop: 4,
   },
   counterBox: {
     flexDirection: 'row',
@@ -374,6 +493,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginHorizontal: 4,
+  },
+  quickSaveBtn: {
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: '#fff8e1',
+    marginLeft: 6,
+  },
+  quickSaveText: {
+    fontSize: 16,
+    color: '#f59e0b',
   },
 });
 

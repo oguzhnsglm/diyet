@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { SafeAreaView, ScrollView, Text, View, Pressable, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { addQuickAction, getQuickActions } from '../logic/quickActions';
 
 const RECIPES = [
   {
@@ -93,15 +94,45 @@ const RECIPES = [
   },
 ];
 
+const QUICK_CATEGORY = 'recipes';
+
 const HealthyRecipesScreen = () => {
   const [selectedCategory, setSelectedCategory] = useState('Tümü');
   const [expandedRecipe, setExpandedRecipe] = useState(null);
+  const [quickRecipes, setQuickRecipes] = useState([]);
 
   const categories = ['Tümü', 'Bowl Tarifleri', 'Şekersiz Tatlı'];
 
   const filteredRecipes = selectedCategory === 'Tümü' 
     ? RECIPES 
     : RECIPES.filter(r => r.category === selectedCategory);
+
+  useEffect(() => {
+    const loadQuick = async () => {
+      const stored = await getQuickActions(QUICK_CATEGORY);
+      setQuickRecipes(stored);
+    };
+    loadQuick();
+  }, []);
+
+  const handleSaveFavorite = async (recipe) => {
+    const payload = {
+      id: recipe.id,
+      name: recipe.name,
+      category: recipe.category,
+      calories: recipe.calories,
+      prepTime: recipe.prepTime,
+    };
+    const updated = await addQuickAction(QUICK_CATEGORY, payload);
+    setQuickRecipes(updated);
+  };
+
+  const handleQuickSelect = (recipe) => {
+    if (recipe.category !== selectedCategory && recipe.category !== 'Tümü') {
+      setSelectedCategory(recipe.category);
+    }
+    setExpandedRecipe(recipe.id);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -112,6 +143,24 @@ const HealthyRecipesScreen = () => {
             <Text style={styles.headerTitle}>🥗 Sağlıklı Tarifler</Text>
             <Text style={styles.headerSubtitle}>Düşük kalorili ve şekersiz lezzetler</Text>
           </View>
+
+          {quickRecipes.length > 0 && (
+            <View style={styles.quickSection}>
+              <Text style={styles.quickTitle}>Sık yaptıkların</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
+                {quickRecipes.map((recipe) => (
+                  <Pressable
+                    key={recipe.id}
+                    style={styles.quickCard}
+                    onPress={() => handleQuickSelect(recipe)}
+                  >
+                    <Text style={styles.quickCardTitle}>{recipe.name}</Text>
+                    <Text style={styles.quickCardMeta}>{recipe.calories} kcal • {recipe.prepTime}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          )}
 
           {/* Kategori Seçimi */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
@@ -143,6 +192,10 @@ const HealthyRecipesScreen = () => {
                     <Text style={styles.recipeTime}>⏱️ {recipe.prepTime}</Text>
                   </View>
                 </View>
+
+                <Pressable style={styles.favoriteButton} onPress={() => handleSaveFavorite(recipe)}>
+                  <Text style={styles.favoriteButtonText}>+ Sık Kullan</Text>
+                </Pressable>
 
                 <View style={styles.tagsContainer}>
                   {recipe.tags.map((tag, idx) => (
@@ -201,6 +254,38 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 14,
     color: '#7F8C8D',
+  },
+  quickSection: {
+    backgroundColor: '#FFF7ED',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FFE0B2',
+  },
+  quickTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#8D4A0B',
+  },
+  quickCard: {
+    backgroundColor: '#FFFFFF',
+    padding: 12,
+    borderRadius: 12,
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: '#FFE0B2',
+    width: 200,
+  },
+  quickCardTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#8D4A0B',
+  },
+  quickCardMeta: {
+    fontSize: 12,
+    color: '#a15c20',
+    marginTop: 4,
   },
   categoryScroll: {
     marginBottom: 16,
@@ -261,6 +346,19 @@ const styles = StyleSheet.create({
   },
   recipeStats: {
     alignItems: 'flex-end',
+  },
+  favoriteButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#FFF3E0',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginBottom: 10,
+  },
+  favoriteButtonText: {
+    fontSize: 12,
+    color: '#F57C00',
+    fontWeight: '600',
   },
   recipeCalories: {
     fontSize: 16,

@@ -15,6 +15,20 @@ const CARD_COLORS = [
   '#a855f7', // Yağ
 ];
 
+const formatAmount = (value, unit) => `${Number(value.toFixed(1))} ${unit}`;
+
+const remainingText = (current, limit, unit) => {
+  const diff = Number((limit - current).toFixed(1));
+  const absDiff = Math.abs(diff);
+
+  if (absDiff === 0) {
+    return `Limit tamamlandı`;
+  }
+
+  const formatted = `${absDiff} ${unit}`;
+  return diff >= 0 ? `Kalan: ${formatted}` : `Aşıldı: ${formatted}`;
+};
+
 const NutritionTracker = ({
   calories = 0,
   sugar = 0,
@@ -26,27 +40,30 @@ const NutritionTracker = ({
   const cardData = [
     {
       label: 'Kalori',
-      value: `${calories} kcal`,
+      value: formatAmount(calories, 'kcal'),
       sub: `Limit: ${DAILY_LIMITS.calories}`,
       color: calories > DAILY_LIMITS.calories ? '#ef4444' : CARD_COLORS[0],
     },
     {
       label: 'Şeker',
-      value: `${sugar} gr`,
-      sub: `Kalan: ${DAILY_LIMITS.sugar - sugar} gr`,
-      color: CARD_COLORS[1],
+      value: formatAmount(sugar, 'gr'),
+      sub: remainingText(sugar, DAILY_LIMITS.sugar, 'gr'),
+      color:
+        sugar > DAILY_LIMITS.sugar ? '#ef4444' : CARD_COLORS[1],
     },
     {
       label: 'Protein',
-      value: `${protein} gr`,
-      sub: `Kalan: ${DAILY_LIMITS.protein - protein} gr`,
-      color: CARD_COLORS[2],
+      value: formatAmount(protein, 'gr'),
+      sub: remainingText(protein, DAILY_LIMITS.protein, 'gr'),
+      color:
+        protein > DAILY_LIMITS.protein ? '#ef4444' : CARD_COLORS[2],
     },
     {
       label: 'Yağ',
-      value: `${fat} gr`,
-      sub: `Kalan: ${DAILY_LIMITS.fat - fat} gr`,
-      color: CARD_COLORS[3],
+      value: formatAmount(fat, 'gr'),
+      sub: remainingText(fat, DAILY_LIMITS.fat, 'gr'),
+      color:
+        fat > DAILY_LIMITS.fat ? '#ef4444' : CARD_COLORS[3],
     },
   ];
 

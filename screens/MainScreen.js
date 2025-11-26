@@ -1,6 +1,9 @@
-
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import NutritionTracker from './NutritionTracker';
+import ExerciseSuggestions from '../components/ExerciseSuggestions';
+import WaterTracker from '../components/WaterTracker';
+import DietCalendar from '../components/DietCalendar';
+import MiniAssistant from '../components/MiniAssistant';
 import { useRoute } from '@react-navigation/native';
 import {
   SafeAreaView,
@@ -12,10 +15,22 @@ import {
   TextInput,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { getDietSummaries, saveDietSummary } from '../logic/dietCalendarStorage';
+
+const getDayStatus = (calories, limit) => {
+  const diff = calories - limit;
+  if (diff <= 0) return 'healthy';
+  if (diff >= 400) return 'cheat';
+  return 'unhealthy';
+};
 
 const MainScreen = ({ navigation }) => {
   const route = useRoute();
   const stats = route.params?.stats || { calories: 0, sugar: 0, protein: 0, fat: 0 };
+  const calorieLimit = route.params?.calorieLimit || 2000;
+  const [calendarVisible, setCalendarVisible] = useState(false);
+  const [assistantVisible, setAssistantVisible] = useState(false);
+  const [dietSummaries, setDietSummaries] = useState({});
 
   // Günlük istatistikleri stats üzerinden kullanacağız
   const dailyStats = stats;
@@ -80,6 +95,56 @@ const MainScreen = ({ navigation }) => {
     return { bmi: value.toFixed(1), bmiCategory: cat };
   }, [height, weight]);
 
+  useEffect(() => {
+    let mounted = true;
+    const loadSummaries = async () => {
+      const stored = await getDietSummaries();
+      if (mounted) {
+        setDietSummaries(stored);
+      }
+    };
+    loadSummaries();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const caloriesValue = Number(stats?.calories || 0);
+    if (!Number.isFinite(caloriesValue) || caloriesValue <= 0) {
+      return;
+    }
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const summaryPayload = {
+      status: getDayStatus(caloriesValue, calorieLimit),
+      calories: Math.round(caloriesValue),
+    };
+    const existing = dietSummaries[todayKey];
+    if (
+      existing &&
+      existing.status === summaryPayload.status &&
+      existing.calories === summaryPayload.calories
+    ) {
+      return;
+    }
+    const persist = async () => {
+      const updated = await saveDietSummary(todayKey, summaryPayload);
+      if (updated) {
+        setDietSummaries(updated);
+      }
+    };
+    persist();
+  }, [stats, calorieLimit, dietSummaries]);
+
+  const assistantPrompts = useMemo(
+    () => [
+      'Bugünkü kalori dengesini nasıl iyileştirebilirim?',
+      'Akşam için hafif bir öğün önerir misin?',
+      'Şeker tüketimimi düşürmek için ne yapmalıyım?',
+    ],
+    []
+  );
+
   const menuOptions = [
     {
       id: 1,
@@ -102,6 +167,13 @@ const MainScreen = ({ navigation }) => {
       color: '#2196F3',
       screen: 'IngredientSearch',
     },
+    {
+      id: 4,
+      title: '🏃‍♀️ Egzersiz Önerileri',
+      description: 'Kalori dengesine göre hazır egzersiz listelerini incele',
+      color: '#3b82f6',
+      screen: 'ExerciseLibrary',
+    },
   ];
 
   return (
@@ -110,8 +182,26 @@ const MainScreen = ({ navigation }) => {
         <ScrollView contentContainerStyle={styles.content}>
           {/* Başlık */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Sağlıklı Yaşam</Text>
-            <Text style={styles.headerSubtitle}>Beslenme asistanına hoş geldin!</Text>
+            <View style={styles.headerTextBlock}>
+              <Text style={styles.headerTitle}>Sağlıklı Yaşam</Text>
+              <Text style={styles.headerSubtitle}>Beslenme asistanına hoş geldin!</Text>
+            </View>
+            <View style={styles.headerActions}>
+              <Pressable
+                style={styles.headerIconButton}
+                accessibilityRole="button"
+                onPress={() => setAssistantVisible(true)}
+              >
+                <Text style={styles.headerIconText}>🤖</Text>
+              </Pressable>
+              <Pressable
+                style={styles.headerIconButton}
+                accessibilityRole="button"
+                onPress={() => setCalendarVisible(true)}
+              >
+                <Text style={styles.headerIconText}>📆</Text>
+              </Pressable>
+            </View>
           </View>
 
           {/* 2️⃣ Günlük Besin Özeti (NutritionTracker) */}
@@ -166,6 +256,10 @@ const MainScreen = ({ navigation }) => {
               </View>
             ))}
           </View>
+
+          <ExerciseSuggestions totalCalories={stats.calories} limit={calorieLimit} />
+
+          <WaterTracker />
 
           {/* BMI Hesaplayıcı (8. fikirdi ama bence burada çok güzel durur) */}
           <Text style={styles.sectionTitle}>Vücut Kitle İndeksi (BMI)</Text>
@@ -242,6 +336,20 @@ const MainScreen = ({ navigation }) => {
           </View>
         </ScrollView>
       </LinearGradient>
+      <DietCalendar
+        visible={calendarVisible}
+        summaries={dietSummaries}
+        onClose={() => setCalendarVisible(false)}
+      />
+      <MiniAssistant
+        visible={assistantVisible}
+        onClose={() => setAssistantVisible(false)}
+        stats={{
+          calories: Math.round(stats.calories || 0),
+          sugar: Math.round(stats.sugar || 0),
+        }}
+        prompts={assistantPrompts}
+      />
     </SafeAreaView>
   );
 };
@@ -256,9 +364,20 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   header: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 20,
     marginTop: 10,
+  },
+  headerTextBlock: {
+    flex: 1,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginLeft: 12,
   },
   headerTitle: {
     fontSize: 32,
@@ -269,6 +388,17 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 16,
     color: '#7F8C8D',
+  },
+  headerIconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#e5f3ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerIconText: {
+    fontSize: 22,
   },
   sectionTitle: {
     fontSize: 18,

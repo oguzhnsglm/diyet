@@ -6,6 +6,7 @@ import MainScreen from './screens/MainScreen';
 import SimpleDietPlanScreen from './screens/SimpleDietPlanScreen';
 import HealthyRecipesScreen from './screens/HealthyRecipesScreen';
 import IngredientSearchScreen from './screens/IngredientSearchScreen';
+import ExerciseLibraryScreen from './screens/ExerciseLibraryScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -57,6 +58,14 @@ export default function App() {
             title: 'Malzemeden Tarif Bul',
             headerStyle: { backgroundColor: '#2196F3' },
           }} 
+        />
+        <Stack.Screen
+          name="ExerciseLibrary"
+          component={ExerciseLibraryScreen}
+          options={{
+            title: 'Egzersiz Önerileri',
+            headerStyle: { backgroundColor: '#3b82f6' },
+          }}
         />
       </Stack.Navigator>
     </NavigationContainer>
