@@ -1,3 +1,346 @@
+import React, { useMemo, useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  StyleSheet,
+  ScrollView,
+} from 'react-native';
+
+const RECOMMENDED_FOODS = [
+  { id: 1, name: 'Tam buğday ekmeği (1 dilim)', calories: 70, protein: 3, fat: 1, sugar: 1.5 },
+  { id: 2, name: 'Yumurta (1 adet)', calories: 78, protein: 6.3, fat: 5.3, sugar: 0.6 },
+  { id: 3, name: 'Tavuk göğsü (100g)', calories: 165, protein: 31, fat: 3.6, sugar: 0 },
+  // ... istersen öneri listeni burada tut
+];
+
+const DietPlan = ({ navigation }) => {
+  const [search, setSearch] = useState('');
+
+  // Kullanıcının eklediği tüm besinler (liste + serbest)
+  const [items, setItems] = useState([]);
+
+  // Serbest giriş alanları
+  const [name, setName] = useState('');
+  const [grams, setGrams] = useState('');
+  const [calories, setCalories] = useState('');
+  const [protein, setProtein] = useState('');
+  const [fat, setFat] = useState('');
+  const [sugar, setSugar] = useState('');
+
+  // Arama kutusuna göre öneri listesini filtrele
+  const filteredFoods = useMemo(() => {
+    if (!search.trim()) return RECOMMENDED_FOODS;
+    const q = search.toLowerCase();
+    return RECOMMENDED_FOODS.filter(f => f.name.toLowerCase().includes(q));
+  }, [search]);
+
+  // Toplamları hesapla
+  const totals = useMemo(
+    () =>
+      items.reduce(
+        (acc, item) => {
+          acc.calories += item.calories;
+          acc.protein += item.protein;
+          acc.fat += item.fat;
+          acc.sugar += item.sugar;
+          return acc;
+        },
+        { calories: 0, protein: 0, fat: 0, sugar: 0 }
+      ),
+    [items]
+  );
+
+  const handleAddFromRecommended = food => {
+    // burada istersen porsiyon/gram hesabı da ekleyebilirsin
+    setItems(prev => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        name: food.name,
+        grams: null,
+        calories: food.calories,
+        protein: food.protein,
+        fat: food.fat,
+        sugar: food.sugar,
+      },
+    ]);
+  };
+
+  const handleAddCustom = () => {
+    if (!name.trim()) return;
+
+    const g = parseFloat(grams.replace(',', '.')) || 0;
+    const c = parseFloat(calories.replace(',', '.')) || 0;
+    const p = parseFloat(protein.replace(',', '.')) || 0;
+    const f = parseFloat(fat.replace(',', '.')) || 0;
+    const s = parseFloat(sugar.replace(',', '.')) || 0;
+
+    setItems(prev => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        name,
+        grams: g,
+        calories: c,
+        protein: p,
+        fat: f,
+        sugar: s,
+      },
+    ]);
+
+    // Alanları temizle
+    setName('');
+    setGrams('');
+    setCalories('');
+    setProtein('');
+    setFat('');
+    setSugar('');
+  };
+
+  const handleSaveAndGoHome = () => {
+    navigation.navigate('Main', {
+      stats: totals,
+    });
+  };
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
+      <Text style={styles.title}>Diyet Planı Oluştur</Text>
+
+      {/* 🔍 Arama kutusu */}
+      <Text style={styles.sectionTitle}>Önerilen yiyecekler</Text>
+      <TextInput
+        style={styles.searchInput}
+        placeholder="Örn: tavuk, yumurta, makarna..."
+        value={search}
+        onChangeText={setSearch}
+      />
+
+      {filteredFoods.map(food => (
+        <Pressable
+          key={food.id}
+          style={styles.foodItem}
+          onPress={() => handleAddFromRecommended(food)}
+        >
+          <View>
+            <Text style={styles.foodName}>{food.name}</Text>
+            <Text style={styles.foodInfo}>
+              {food.calories} kcal • P: {food.protein}g • Y: {food.fat}g • Ş: {food.sugar}g
+            </Text>
+          </View>
+          <Text style={styles.addText}>Ekle +</Text>
+        </Pressable>
+      ))}
+
+      {/* ✏️ Serbest besin ekleme alanı */}
+      <Text style={styles.sectionTitle}>Kendi yediğini ekle</Text>
+
+      <Text style={styles.label}>Ne yedin?</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Örn: Bir tabak makarna"
+        value={name}
+        onChangeText={setName}
+      />
+
+      <Text style={styles.label}>Miktar (gram)</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Örn: 230"
+        keyboardType="numeric"
+        value={grams}
+        onChangeText={setGrams}
+      />
+
+      <Text style={styles.label}>Kalori (kcal)</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Örn: 350"
+        keyboardType="numeric"
+        value={calories}
+        onChangeText={setCalories}
+      />
+
+      <Text style={styles.label}>Protein (g)</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Örn: 12"
+        keyboardType="numeric"
+        value={protein}
+        onChangeText={setProtein}
+      />
+
+      <Text style={styles.label}>Yağ (g)</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Örn: 8"
+        keyboardType="numeric"
+        value={fat}
+        onChangeText={setFat}
+      />
+
+      <Text style={styles.label}>Şeker (g)</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Örn: 3"
+        keyboardType="numeric"
+        value={sugar}
+        onChangeText={setSugar}
+      />
+
+      <Pressable style={styles.addButton} onPress={handleAddCustom}>
+        <Text style={styles.addButtonText}>Bu öğünü listeye ekle</Text>
+      </Pressable>
+
+      {/* Eklenen öğünlerin özeti */}
+      <Text style={styles.sectionTitle}>Bugünkü öğünlerin</Text>
+      {items.map(item => (
+        <View key={item.id} style={styles.summaryItem}>
+          <Text style={styles.summaryName}>
+            {item.name} {item.grams ? `(${item.grams} g)` : ''}
+          </Text>
+          <Text style={styles.summaryInfo}>
+            {item.calories} kcal • P: {item.protein}g • Y: {item.fat}g • Ş: {item.sugar}g
+          </Text>
+        </View>
+      ))}
+
+      {/* Toplamlar + kaydet */}
+      <View style={styles.totalCard}>
+        <Text style={styles.totalTitle}>Toplam Bugün</Text>
+        <Text style={styles.totalLine}>Kalori: {totals.calories} kcal</Text>
+        <Text style={styles.totalLine}>Protein: {totals.protein} g</Text>
+        <Text style={styles.totalLine}>Yağ: {totals.fat} g</Text>
+        <Text style={styles.totalLine}>Şeker: {totals.sugar} g</Text>
+      </View>
+
+      <Pressable style={styles.saveButton} onPress={handleSaveAndGoHome}>
+        <Text style={styles.saveButtonText}>Kaydet ve Ana Sayfaya Dön</Text>
+      </Pressable>
+    </ScrollView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F5F7FA',
+    padding: 16,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    color: '#2C3E50',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 16,
+    marginBottom: 8,
+    color: '#2C3E50',
+  },
+  searchInput: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    marginBottom: 8,
+  },
+  foodItem: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 6,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  foodName: {
+    fontWeight: '600',
+    color: '#111827',
+  },
+  foodInfo: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  addText: {
+    color: '#16A34A',
+    fontWeight: '600',
+  },
+  label: {
+    fontSize: 13,
+    marginTop: 6,
+    marginBottom: 2,
+    color: '#4B5563',
+  },
+  input: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+  },
+  addButton: {
+    marginTop: 12,
+    backgroundColor: '#4CAF50',
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  addButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  summaryItem: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 6,
+  },
+  summaryName: {
+    fontWeight: '600',
+    color: '#111827',
+  },
+  summaryInfo: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  totalCard: {
+    marginTop: 10,
+    padding: 12,
+    backgroundColor: '#E8F5E9',
+    borderRadius: 12,
+  },
+  totalTitle: {
+    fontWeight: '700',
+    marginBottom: 4,
+    color: '#14532D',
+  },
+  totalLine: {
+    fontSize: 13,
+    color: '#14532D',
+  },
+  saveButton: {
+    marginTop: 16,
+    backgroundColor: '#2563EB',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+});
+
+export default DietPlan;
 import React, { useContext, useState, useMemo } from 'react';
 import { SafeAreaView, ScrollView, Text, View, Pressable, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
