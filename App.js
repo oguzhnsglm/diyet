@@ -7,6 +7,8 @@ import SimpleDietPlanScreen from './screens/SimpleDietPlanScreen';
 import HealthyRecipesScreen from './screens/HealthyRecipesScreen';
 import IngredientSearchScreen from './screens/IngredientSearchScreen';
 import ExerciseLibraryScreen from './screens/ExerciseLibraryScreen';
+import BloodSugarScreen from './screens/BloodSugarScreen';
+import EmergencyScreen from './screens/EmergencyScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -65,6 +67,22 @@ export default function App() {
           options={{
             title: 'Egzersiz Önerileri',
             headerStyle: { backgroundColor: '#3b82f6' },
+          }}
+        />
+        <Stack.Screen
+          name="BloodSugar"
+          component={BloodSugarScreen}
+          options={{
+            title: 'Kan Şekeri Takibi',
+            headerStyle: { backgroundColor: '#0ea5e9' },
+          }}
+        />
+        <Stack.Screen
+          name="Emergency"
+          component={EmergencyScreen}
+          options={{
+            title: 'Acil Durum Önerileri',
+            headerStyle: { backgroundColor: '#dc2626' },
           }}
         />
       </Stack.Navigator>

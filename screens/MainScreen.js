@@ -4,6 +4,7 @@ import ExerciseSuggestions from '../components/ExerciseSuggestions';
 import WaterTracker from '../components/WaterTracker';
 import DietCalendar from '../components/DietCalendar';
 import MiniAssistant from '../components/MiniAssistant';
+import BloodSugarQuickCard from '../components/BloodSugarQuickCard';
 import { useRoute } from '@react-navigation/native';
 import {
   SafeAreaView,
@@ -210,6 +211,11 @@ const MainScreen = ({ navigation }) => {
             sugar={stats.sugar}
             protein={stats.protein}
             fat={stats.fat}
+          />
+
+          <BloodSugarQuickCard
+            onOpenDetail={() => navigation.navigate('BloodSugar')}
+            onOpenEmergency={payload => navigation.navigate('Emergency', payload)}
           />
 
           {/* 3️⃣ Günün Önerisi */}

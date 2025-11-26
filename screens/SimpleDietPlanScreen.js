@@ -4,44 +4,47 @@ import { SafeAreaView, ScrollView, Text, View, Pressable, StyleSheet, Alert } fr
 import { LinearGradient } from 'expo-linear-gradient';
 import NutritionTracker from './NutritionTracker';
 import { addQuickAction, getQuickActions } from '../logic/quickActions';
+import GlycemicInfoBadge from '../components/GlycemicInfoBadge';
+import MealRiskEstimator from '../components/MealRiskEstimator';
+import SmartMealWarnings from '../components/SmartMealWarnings';
 
 const FOOD_DATABASE_BASE = [
   // Kahvaltı - Sadece Sağlıklı
-  { id: 1, name: 'Tam buğday ekmeği (1 dilim)', calories: 70, sugar: 1, protein: 3, fat: 1, category: 'Kahvaltı', recommended: true, advice: 'Önerilen - Düşük glisemik indeks' },
-  { id: 2, name: 'Yumurta (1 adet)', calories: 78, sugar: 0.6, protein: 6.3, fat: 5.3, category: 'Kahvaltı', recommended: true, advice: 'Önerilen - Protein kaynağı' },
-  { id: 3, name: 'Peynir (30g)', calories: 100, sugar: 0.5, protein: 6, fat: 7.5, category: 'Kahvaltı', recommended: true, advice: 'Önerilen - Kalsiyum açısından zengin' },
-  { id: 4, name: 'Zeytin (10 adet)', calories: 50, sugar: 0, protein: 0.3, fat: 4.5, category: 'Kahvaltı', recommended: true, advice: 'Önerilen - Sağlıklı yağ içerir' },
-  { id: 5, name: 'Yoğurt (yağsız, 200g)', calories: 100, sugar: 7, protein: 7, fat: 0.4, category: 'Kahvaltı', recommended: true, advice: 'Önerilen - Probiyotik içerir' },
-  
+  { id: 1, name: 'Tam buğday ekmeği (1 dilim)', calories: 70, sugar: 1, protein: 3, fat: 1, carb: 12, gi: 50, category: 'Kahvaltı', recommended: true, advice: 'Önerilen - Düşük glisemik indeks' },
+  { id: 2, name: 'Yumurta (1 adet)', calories: 78, sugar: 0.6, protein: 6.3, fat: 5.3, carb: 1, gi: 0, category: 'Kahvaltı', recommended: true, advice: 'Önerilen - Protein kaynağı' },
+  { id: 3, name: 'Peynir (30g)', calories: 100, sugar: 0.5, protein: 6, fat: 7.5, carb: 1, gi: 35, category: 'Kahvaltı', recommended: true, advice: 'Önerilen - Kalsiyum açısından zengin' },
+  { id: 4, name: 'Zeytin (10 adet)', calories: 50, sugar: 0, protein: 0.3, fat: 4.5, carb: 1, gi: 15, category: 'Kahvaltı', recommended: true, advice: 'Önerilen - Sağlıklı yağ içerir' },
+  { id: 5, name: 'Yoğurt (yağsız, 200g)', calories: 100, sugar: 7, protein: 7, fat: 0.4, carb: 10, gi: 45, category: 'Kahvaltı', recommended: true, advice: 'Önerilen - Probiyotik içerir' },
+
   // Ana Yemekler - Sadece Sağlıklı
-  { id: 7, name: 'Izgara tavuk göğsü (150g)', calories: 165, sugar: 0, protein: 31, fat: 3.6, category: 'Ana Yemek', recommended: true, advice: 'Önerilen - Yağsız protein kaynağı' },
-  { id: 13, name: 'Izgara köfte (100g)', calories: 250, sugar: 0, protein: 26, fat: 17, category: 'Ana Yemek', recommended: true, advice: 'Önerilen - Protein açısından zengin' },
-  { id: 8, name: 'Basmati pilavı (tereyağlı, 1 porsiyon)', calories: 200, sugar: 0.2, protein: 4, fat: 8, category: 'Ana Yemek', recommended: true, advice: 'Önerilen - Tercihen tereyağlı' },
-  { id: 9, name: 'Basmati pilavı (zeytinyağlı, 1 porsiyon)', calories: 190, sugar: 0.2, protein: 4, fat: 7, category: 'Ana Yemek', recommended: true, advice: 'Önerilen - Tercihen zeytinyağlı (Daha sağlıklı)' },
-  { id: 10, name: 'Bulgur pilavı (1 porsiyon)', calories: 150, sugar: 0.3, protein: 5, fat: 1, category: 'Ana Yemek', recommended: true, advice: 'Önerilen - Lif açısından zengin, düşük glisemik' },
-  { id: 11, name: 'Zeytinyağlı fasulye (1 porsiyon)', calories: 180, sugar: 3, protein: 9, fat: 5, category: 'Ana Yemek', recommended: true, advice: 'Önerilen - Lif ve protein içerir' },
-  { id: 12, name: 'Mercimek çorbası (1 kase)', calories: 120, sugar: 2, protein: 8, fat: 0.4, category: 'Ana Yemek', recommended: true, advice: 'Önerilen - Protein ve lif kaynağı' },
-  { id: 30, name: 'Izgara somon (150g)', calories: 280, sugar: 0, protein: 39, fat: 13, category: 'Ana Yemek', recommended: true, advice: 'Önerilen - Omega-3 açısından zengin' },
-  
+  { id: 7, name: 'Izgara tavuk göğsü (150g)', calories: 165, sugar: 0, protein: 31, fat: 3.6, carb: 0, gi: 0, category: 'Ana Yemek', recommended: true, advice: 'Önerilen - Yağsız protein kaynağı' },
+  { id: 13, name: 'Izgara köfte (100g)', calories: 250, sugar: 0, protein: 26, fat: 17, carb: 0, gi: 0, category: 'Ana Yemek', recommended: true, advice: 'Önerilen - Protein açısından zengin' },
+  { id: 8, name: 'Basmati pilavı (tereyağlı, 1 porsiyon)', calories: 200, sugar: 0.2, protein: 4, fat: 8, carb: 40, gi: 58, category: 'Ana Yemek', recommended: true, advice: 'Önerilen - Tercihen tereyağlı' },
+  { id: 9, name: 'Basmati pilavı (zeytinyağlı, 1 porsiyon)', calories: 190, sugar: 0.2, protein: 4, fat: 7, carb: 38, gi: 56, category: 'Ana Yemek', recommended: true, advice: 'Önerilen - Tercihen zeytinyağlı (Daha sağlıklı)' },
+  { id: 10, name: 'Bulgur pilavı (1 porsiyon)', calories: 150, sugar: 0.3, protein: 5, fat: 1, carb: 33, gi: 48, category: 'Ana Yemek', recommended: true, advice: 'Önerilen - Lif açısından zengin, düşük glisemik' },
+  { id: 11, name: 'Zeytinyağlı fasulye (1 porsiyon)', calories: 180, sugar: 3, protein: 9, fat: 5, carb: 25, gi: 40, category: 'Ana Yemek', recommended: true, advice: 'Önerilen - Lif ve protein içerir' },
+  { id: 12, name: 'Mercimek çorbası (1 kase)', calories: 120, sugar: 2, protein: 8, fat: 0.4, carb: 20, gi: 44, category: 'Ana Yemek', recommended: true, advice: 'Önerilen - Protein ve lif kaynağı' },
+  { id: 30, name: 'Izgara somon (150g)', calories: 280, sugar: 0, protein: 39, fat: 13, carb: 0, gi: 0, category: 'Ana Yemek', recommended: true, advice: 'Önerilen - Omega-3 açısından zengin' },
+
   // Salata ve Sebzeler
-  { id: 16, name: 'Mevsim salatası (zeytinyağlı)', calories: 80, sugar: 3, protein: 2, fat: 7, category: 'Salata', recommended: true, advice: 'Önerilen - Her öğünde tüketin' },
-  { id: 17, name: 'Çoban salatası', calories: 90, sugar: 4, protein: 3, fat: 5, category: 'Salata', recommended: true, advice: 'Önerilen - Vitamin ve mineral kaynağı' },
-  { id: 18, name: 'Haşlanmış brokoli (1 porsiyon)', calories: 55, sugar: 2, protein: 4, fat: 0.6, category: 'Sebze', recommended: true, advice: 'Önerilen - Antioksidan açısından zengin' },
-  { id: 19, name: 'Közlenmiş patlıcan salatası', calories: 120, sugar: 5, protein: 3, fat: 8, category: 'Salata', recommended: true, advice: 'Önerilen - Lif içeriği yüksek' },
-  { id: 31, name: 'Kinoa salatası', calories: 180, sugar: 2, protein: 8, fat: 3, category: 'Salata', recommended: true, advice: 'Önerilen - Tam protein kaynağı' },
-  
+  { id: 16, name: 'Mevsim salatası (zeytinyağlı)', calories: 80, sugar: 3, protein: 2, fat: 7, carb: 8, gi: 25, category: 'Salata', recommended: true, advice: 'Önerilen - Her öğünde tüketin' },
+  { id: 17, name: 'Çoban salatası', calories: 90, sugar: 4, protein: 3, fat: 5, carb: 9, gi: 28, category: 'Salata', recommended: true, advice: 'Önerilen - Vitamin ve mineral kaynağı' },
+  { id: 18, name: 'Haşlanmış brokoli (1 porsiyon)', calories: 55, sugar: 2, protein: 4, fat: 0.6, carb: 11, gi: 15, category: 'Sebze', recommended: true, advice: 'Önerilen - Antioksidan açısından zengin' },
+  { id: 19, name: 'Közlenmiş patlıcan salatası', calories: 120, sugar: 5, protein: 3, fat: 8, carb: 10, gi: 20, category: 'Salata', recommended: true, advice: 'Önerilen - Lif içeriği yüksek' },
+  { id: 31, name: 'Kinoa salatası', calories: 180, sugar: 2, protein: 8, fat: 3, carb: 30, gi: 53, category: 'Salata', recommended: true, advice: 'Önerilen - Tam protein kaynağı' },
+
   // Meyveler
-  { id: 22, name: 'Elma (1 adet orta boy)', calories: 95, sugar: 19, protein: 0.5, fat: 0.3, category: 'Meyve', recommended: true, advice: 'Önerilen - Doğal şeker, lif içerir' },
-  { id: 23, name: 'Muz (1 adet)', calories: 105, sugar: 14, protein: 1.3, fat: 0.3, category: 'Meyve', recommended: true, advice: 'Önerilen - Potasyum kaynağı, ölçülü tüketin' },
-  { id: 32, name: 'Yaban mersini (1 kase)', calories: 85, sugar: 15, protein: 1, fat: 0.5, category: 'Meyve', recommended: true, advice: 'Önerilen - Antioksidan bombası' },
-  { id: 33, name: 'Kivi (1 adet)', calories: 42, sugar: 6, protein: 0.8, fat: 0.4, category: 'Meyve', recommended: true, advice: 'Önerilen - C vitamini açısından zengin' },
-  
+  { id: 22, name: 'Elma (1 adet orta boy)', calories: 95, sugar: 19, protein: 0.5, fat: 0.3, carb: 25, gi: 38, category: 'Meyve', recommended: true, advice: 'Önerilen - Doğal şeker, lif içerir' },
+  { id: 23, name: 'Muz (1 adet)', calories: 105, sugar: 14, protein: 1.3, fat: 0.3, carb: 27, gi: 51, category: 'Meyve', recommended: true, advice: 'Önerilen - Potasyum kaynağı, ölçülü tüketin' },
+  { id: 32, name: 'Yaban mersini (1 kase)', calories: 85, sugar: 15, protein: 1, fat: 0.5, carb: 21, gi: 53, category: 'Meyve', recommended: true, advice: 'Önerilen - Antioksidan bombası' },
+  { id: 33, name: 'Kivi (1 adet)', calories: 42, sugar: 6, protein: 0.8, fat: 0.4, carb: 11, gi: 50, category: 'Meyve', recommended: true, advice: 'Önerilen - C vitamini açısından zengin' },
+
   // Atıştırmalıklar - Sadece Sağlıklı
-  { id: 20, name: 'Badem (30g)', calories: 170, sugar: 1.2, protein: 6, fat: 15, category: 'Atıştırmalık', recommended: true, advice: 'Önerilen - Sağlıklı yağ ve protein içerir' },
-  { id: 21, name: 'Ceviz (30g)', calories: 195, sugar: 0.8, protein: 4.5, fat: 18, category: 'Atıştırmalık', recommended: true, advice: 'Önerilen - Omega-3 kaynağı' },
-  { id: 34, name: 'Fındık (30g)', calories: 180, sugar: 1, protein: 4, fat: 17, category: 'Atıştırmalık', recommended: true, advice: 'Önerilen - E vitamini kaynağı' },
-  { id: 35, name: 'Havuç çubukları', calories: 50, sugar: 6, protein: 1, fat: 0.2, category: 'Atıştırmalık', recommended: true, advice: 'Önerilen - Düşük kalorili, beta karoten' },
-  { id: 36, name: 'Humus (2 yemek kaşığı)', calories: 70, sugar: 1, protein: 2, fat: 3, category: 'Atıştırmalık', recommended: true, advice: 'Önerilen - Protein ve lif içerir' },
+  { id: 20, name: 'Badem (30g)', calories: 170, sugar: 1.2, protein: 6, fat: 15, carb: 6, gi: 15, category: 'Atıştırmalık', recommended: true, advice: 'Önerilen - Sağlıklı yağ ve protein içerir' },
+  { id: 21, name: 'Ceviz (30g)', calories: 195, sugar: 0.8, protein: 4.5, fat: 18, carb: 4, gi: 15, category: 'Atıştırmalık', recommended: true, advice: 'Önerilen - Omega-3 kaynağı' },
+  { id: 34, name: 'Fındık (30g)', calories: 180, sugar: 1, protein: 4, fat: 17, carb: 5, gi: 15, category: 'Atıştırmalık', recommended: true, advice: 'Önerilen - E vitamini kaynağı' },
+  { id: 35, name: 'Havuç çubukları', calories: 50, sugar: 6, protein: 1, fat: 0.2, carb: 12, gi: 47, category: 'Atıştırmalık', recommended: true, advice: 'Önerilen - Düşük kalorili, beta karoten' },
+  { id: 36, name: 'Humus (2 yemek kaşığı)', calories: 70, sugar: 1, protein: 2, fat: 3, carb: 9, gi: 32, category: 'Atıştırmalık', recommended: true, advice: 'Önerilen - Protein ve lif içerir' },
 ];
 
 const KITCHEN_MEASURE_HINTS = {
@@ -80,6 +83,7 @@ const SimpleDietPlanScreen = () => {
   const [selectedFoods, setSelectedFoods] = useState([]);
   const [activeCategory, setActiveCategory] = useState('Tümü');
   const [quickFoods, setQuickFoods] = useState([]);
+  const [expandedDetails, setExpandedDetails] = useState({});
 
   const categories = ['Tümü', 'Kahvaltı', 'Ana Yemek', 'Salata', 'Sebze', 'Meyve', 'Atıştırmalık'];
   const dailyCalorieTarget = 2000;
@@ -243,17 +247,58 @@ const SimpleDietPlanScreen = () => {
           {filteredFoods.map(food => {
             const selectedFood = selectedFoods.find(f => f.id === food.id);
             const count = selectedFood?.count || 0;
+            const carbValue = food.carb ?? (food.sugar || 0);
+            const isExpanded = expandedDetails[food.id];
             return (
               <View key={food.id} style={[styles.foodCard, count > 0 && styles.foodCardSelected]}> 
                 <View style={styles.foodHeader}>
                   <View style={styles.checkbox}>{count > 0 ? <Text style={styles.checkmark}>✓</Text> : null}</View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.foodName}>{food.name}</Text>
-                    <Text style={styles.foodMeta}>{food.calories} kcal | {food.sugar} gr şeker | {food.protein || 0} gr protein | {food.fat || 0} gr yağ</Text>
+                    <Text style={styles.foodMeta}>
+                      {food.calories} kcal | {food.sugar} gr şeker | {carbValue} gr karbonhidrat | {food.protein || 0} gr protein | {food.fat || 0} gr yağ
+                    </Text>
                     {food.kitchenMeasure && (
                       <Text style={styles.foodMeasure}>{food.kitchenMeasure}</Text>
                     )}
                     <Text style={styles.foodAdvice}>{food.advice}</Text>
+                    {typeof food.gi === 'number' && (
+                      <View style={styles.metabolicStack}>
+                        {!isExpanded ? (
+                          <Pressable
+                            style={styles.detailToggle}
+                            onPress={() =>
+                              setExpandedDetails(prev => ({ ...prev, [food.id]: true }))
+                            }
+                          >
+                            <Text style={styles.detailToggleText}>Glisemik rehberi aç</Text>
+                          </Pressable>
+                        ) : (
+                          <>
+                            <GlycemicInfoBadge gi={food.gi} carbGrams={carbValue} />
+                            <MealRiskEstimator
+                              gi={food.gi}
+                              carbGrams={carbValue}
+                              proteinGrams={food.protein || 0}
+                            />
+                            <SmartMealWarnings
+                              gi={food.gi}
+                              carbGrams={carbValue}
+                              sugarGrams={food.sugar || 0}
+                              protein={food.protein || 0}
+                            />
+                            <Pressable
+                              style={[styles.detailToggle, styles.detailToggleActive]}
+                              onPress={() =>
+                                setExpandedDetails(prev => ({ ...prev, [food.id]: false }))
+                              }
+                            >
+                              <Text style={styles.detailToggleText}>Gizle</Text>
+                            </Pressable>
+                          </>
+                        )}
+                      </View>
+                    )}
                   </View>
                   <Pressable style={styles.quickSaveBtn} onPress={() => handleSaveFoodFavorite(food)}>
                     <Text style={styles.quickSaveText}>☆</Text>
@@ -429,6 +474,10 @@ const styles = StyleSheet.create({
     color: '#374151',
     marginBottom: 2,
   },
+    metabolicStack: {
+      marginTop: 10,
+      gap: 6,
+    },
   saveButton: {
     backgroundColor: '#4CAF50',
     borderRadius: 12,
@@ -504,6 +553,24 @@ const styles = StyleSheet.create({
   quickSaveText: {
     fontSize: 16,
     color: '#f59e0b',
+  },
+  detailToggle: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#cbd5f5',
+    alignSelf: 'flex-start',
+    backgroundColor: '#edf2ff',
+  },
+  detailToggleActive: {
+    backgroundColor: '#fee2e2',
+    borderColor: '#fecaca',
+  },
+  detailToggleText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1e3a8a',
   },
 });
 

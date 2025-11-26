@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { SafeAreaView, ScrollView, Text, View, StyleSheet, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../styles';
-import { addQuickAction, getQuickActions } from '../logic/quickActions';
+import { addQuickAction, getQuickActions, removeQuickAction } from '../logic/quickActions';
 
 const QUICK_CATEGORY = 'exercise';
 
@@ -108,7 +108,16 @@ const ExerciseLibraryScreen = () => {
     load();
   }, []);
 
-  const handleSaveFavorite = async (exercise, sectionTitle) => {
+  const handleToggleFavorite = async (exercise, sectionTitle, isFavorite) => {
+    if (isFavorite) {
+      const updated = await removeQuickAction(QUICK_CATEGORY, exercise.id);
+      setQuickExercises(updated);
+      if (highlightedId === exercise.id) {
+        setHighlightedId(updated.length ? updated[0]?.id : null);
+      }
+      return;
+    }
+
     const payload = {
       id: exercise.id,
       name: exercise.name,
@@ -174,22 +183,31 @@ const ExerciseLibraryScreen = () => {
                 </View>
               </View>
 
-              {section.items.map((item) => (
-                <View key={item.name} style={styles.exerciseRow}>
-                  <View style={styles.exerciseHeader}>
-                    <Text style={styles.exerciseName}>{item.name}</Text>
-                    <Text style={styles.exerciseDuration}>{item.duration}</Text>
+              {section.items.map((item) => {
+                const isFavorite = quickExercises.some((fav) => fav.id === item.id);
+                return (
+                  <View key={item.name} style={styles.exerciseRow}>
+                    <View style={styles.exerciseHeader}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.exerciseName}>{item.name}</Text>
+                        <Text style={styles.exerciseDuration}>{item.duration}</Text>
+                      </View>
+                      <Pressable
+                        style={[styles.favoriteToggle, isFavorite && styles.favoriteToggleActive]}
+                        onPress={() => handleToggleFavorite(item, section.title, isFavorite)}
+                        accessibilityRole="button"
+                        accessibilityLabel={isFavorite ? 'Favoriden kaldır' : 'Sık kullanıma ekle'}
+                      >
+                        <Text style={[styles.favoriteStar, isFavorite && styles.favoriteStarActive]}>
+                          {isFavorite ? '★' : '☆'}
+                        </Text>
+                      </Pressable>
+                    </View>
+                    <Text style={styles.exerciseCalories}>{item.calories}</Text>
+                    <Text style={styles.exerciseTip}>{item.tip}</Text>
                   </View>
-                  <Text style={styles.exerciseCalories}>{item.calories}</Text>
-                  <Text style={styles.exerciseTip}>{item.tip}</Text>
-                  <Pressable
-                    style={styles.quickSaveBtn}
-                    onPress={() => handleSaveFavorite(item, section.title)}
-                  >
-                    <Text style={styles.quickSaveText}>+ Sık Kullan</Text>
-                  </Pressable>
-                </View>
-              ))}
+                );
+              })}
             </View>
           ))}
 
@@ -279,7 +297,7 @@ const styles = StyleSheet.create({
   },
   exerciseHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   exerciseName: {
     fontSize: 16,
@@ -357,18 +375,26 @@ const styles = StyleSheet.create({
     color: '#065f46',
     marginTop: 4,
   },
-  quickSaveBtn: {
-    marginTop: 8,
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: '#e0e7ff',
+  favoriteToggle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#cbd5f5',
+    backgroundColor: '#edf2ff',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  quickSaveText: {
-    fontSize: 12,
-    color: '#4338ca',
-    fontWeight: '600',
+  favoriteToggleActive: {
+    borderColor: '#facc15',
+    backgroundColor: '#fef9c3',
+  },
+  favoriteStar: {
+    fontSize: 18,
+    color: '#94a3b8',
+  },
+  favoriteStarActive: {
+    color: '#facc15',
   },
   noteBox: {
     backgroundColor: colors.infoBg,

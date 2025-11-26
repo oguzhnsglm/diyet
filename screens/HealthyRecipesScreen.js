@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { SafeAreaView, ScrollView, Text, View, Pressable, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { addQuickAction, getQuickActions } from '../logic/quickActions';
+import GlycemicInfoBadge from '../components/GlycemicInfoBadge';
+import MealRiskEstimator from '../components/MealRiskEstimator';
+import SmartMealWarnings from '../components/SmartMealWarnings';
 
 const RECIPES = [
   {
@@ -14,6 +17,10 @@ const RECIPES = [
     instructions: '1. Quinoa\'yı haşlayın ve soğumaya bırakın.\n2. Tatlı patatesi fırında közleyin.\n3. Kasede quinoa, ıspanak, avokado, patates ve nohutu yerleştirin.\n4. Tahin ve limon suyu karışımı ile servis edin.',
     nutrition: 'Protein: 15g, Karbonhidrat: 45g, Yağ: 12g',
     tags: ['Vegan', 'Glütensiz', 'Yüksek Protein'],
+    gi: 48,
+    carbGrams: 45,
+    sugarGrams: 6,
+    proteinGrams: 15,
   },
   {
     id: 2,
@@ -25,6 +32,10 @@ const RECIPES = [
     instructions: '1. Bulguru haşlayın.\n2. Kıymayı baharatlarla yoğurup köfte şeklinde pişirin.\n3. Sebzeleri doğrayın.\n4. Kasede bulgur, köfte, sebzeler ve yoğurt ile servis edin.',
     nutrition: 'Protein: 28g, Karbonhidrat: 38g, Yağ: 14g',
     tags: ['Yüksek Protein', 'Akdeniz Diyeti'],
+    gi: 54,
+    carbGrams: 38,
+    sugarGrams: 4,
+    proteinGrams: 28,
   },
   {
     id: 3,
@@ -36,6 +47,10 @@ const RECIPES = [
     instructions: '1. Brokoli ve ıspanağı hafifçe haşlayın.\n2. Avokadoyu dilimleyin.\n3. Kasede tüm malzemeleri yerleştirin.\n4. Zeytinyağı ve limon ile tatlandırın.',
     nutrition: 'Protein: 12g, Karbonhidrat: 22g, Yağ: 16g',
     tags: ['Vegan', 'Detox', 'Düşük Kalori'],
+    gi: 35,
+    carbGrams: 22,
+    sugarGrams: 6,
+    proteinGrams: 12,
   },
   {
     id: 4,
@@ -47,6 +62,10 @@ const RECIPES = [
     instructions: '1. Yulaf, chia ve badem sütünü karıştırın.\n2. Buzdolabında 4 saat bekletin.\n3. Ezilmiş muz ve tarçın ekleyin.\n4. Taze meyvelerle süsleyin.',
     nutrition: 'Protein: 8g, Karbonhidrat: 28g, Yağ: 6g',
     tags: ['Şekersiz', 'Kahvaltı', 'Vegan'],
+    gi: 42,
+    carbGrams: 28,
+    sugarGrams: 12,
+    proteinGrams: 8,
   },
   {
     id: 5,
@@ -58,6 +77,10 @@ const RECIPES = [
     instructions: '1. Tüm malzemeleri blenderda karıştırın.\n2. Top şeklinde yuvarlayın.\n3. Hindistan cevizine bulayın.\n4. Buzdolabında 1 saat bekletin.',
     nutrition: 'Protein: 4g, Karbonhidrat: 15g, Yağ: 6g (per top)',
     tags: ['Şekersiz', 'Vegan', 'Atıştırmalık'],
+    gi: 49,
+    carbGrams: 15,
+    sugarGrams: 10,
+    proteinGrams: 4,
   },
   {
     id: 6,
@@ -69,6 +92,10 @@ const RECIPES = [
     instructions: '1. Bardakta katmanlar halinde yoğurt, meyve ve yulaf yerleştirin.\n2. Ceviz ile süsleyin.\n3. İsteğe göre bal damlatın.\n4. Hemen servis edin.',
     nutrition: 'Protein: 12g, Karbonhidrat: 24g, Yağ: 4g',
     tags: ['Şekersiz', 'Yüksek Protein', 'Kahvaltı'],
+    gi: 46,
+    carbGrams: 24,
+    sugarGrams: 14,
+    proteinGrams: 12,
   },
   {
     id: 7,
@@ -80,6 +107,10 @@ const RECIPES = [
     instructions: '1. Kinoayı haşlayın.\n2. Nohut ve baharatları blenderda karıştırıp falafel yapın.\n3. Falafelleri fırında pişirin.\n4. Kasede kinoa, salata ve falafel ile servis edin.',
     nutrition: 'Protein: 18g, Karbonhidrat: 52g, Yağ: 10g',
     tags: ['Vegan', 'Yüksek Lif', 'Glütensiz'],
+    gi: 52,
+    carbGrams: 52,
+    sugarGrams: 7,
+    proteinGrams: 18,
   },
   {
     id: 8,
@@ -91,6 +122,10 @@ const RECIPES = [
     instructions: '1. Avokado, kakao, badem sütü ve vanilya blenderda karıştırın.\n2. Pürüzsüz kıvam alana kadar çırpın.\n3. Kaselere paylaştırın.\n4. Taze meyve ile süsleyip servis edin.',
     nutrition: 'Protein: 3g, Karbonhidrat: 12g, Yağ: 12g',
     tags: ['Şekersiz', 'Vegan', 'Çikolatalı'],
+    gi: 40,
+    carbGrams: 12,
+    sugarGrams: 8,
+    proteinGrams: 3,
   },
 ];
 
@@ -99,6 +134,7 @@ const QUICK_CATEGORY = 'recipes';
 const HealthyRecipesScreen = () => {
   const [selectedCategory, setSelectedCategory] = useState('Tümü');
   const [expandedRecipe, setExpandedRecipe] = useState(null);
+  const [glycemicExpanded, setGlycemicExpanded] = useState({});
   const [quickRecipes, setQuickRecipes] = useState([]);
 
   const categories = ['Tümü', 'Bowl Tarifleri', 'Şekersiz Tatlı'];
@@ -179,8 +215,10 @@ const HealthyRecipesScreen = () => {
 
           {/* Tarifler */}
           <Text style={styles.sectionTitle}>{filteredRecipes.length} Tarif</Text>
-          {filteredRecipes.map(recipe => (
-            <View key={recipe.id} style={styles.recipeCard}>
+          {filteredRecipes.map(recipe => {
+            const isGlycemicExpanded = glycemicExpanded[recipe.id];
+            return (
+              <View key={recipe.id} style={styles.recipeCard}>
               <Pressable onPress={() => setExpandedRecipe(expandedRecipe === recipe.id ? null : recipe.id)}>
                 <View style={styles.recipeHeader}>
                   <View style={{ flex: 1 }}>
@@ -217,6 +255,44 @@ const HealthyRecipesScreen = () => {
 
                     <Text style={styles.detailsTitle}>Besin Değerleri:</Text>
                     <Text style={styles.nutrition}>{recipe.nutrition}</Text>
+
+                    {typeof recipe.gi === 'number' && (
+                      <View style={styles.metabolicStack}>
+                        {!isGlycemicExpanded ? (
+                          <Pressable
+                            style={styles.detailToggle}
+                            onPress={() =>
+                              setGlycemicExpanded(prev => ({ ...prev, [recipe.id]: true }))
+                            }
+                          >
+                            <Text style={styles.detailToggleText}>Glisemik rehberi aç</Text>
+                          </Pressable>
+                        ) : (
+                          <>
+                            <GlycemicInfoBadge gi={recipe.gi} carbGrams={recipe.carbGrams} />
+                            <MealRiskEstimator
+                              gi={recipe.gi}
+                              carbGrams={recipe.carbGrams}
+                              proteinGrams={recipe.proteinGrams || 0}
+                            />
+                            <SmartMealWarnings
+                              gi={recipe.gi}
+                              carbGrams={recipe.carbGrams}
+                              sugarGrams={recipe.sugarGrams || 0}
+                              protein={recipe.proteinGrams || 0}
+                            />
+                            <Pressable
+                              style={[styles.detailToggle, styles.detailToggleActive]}
+                              onPress={() =>
+                                setGlycemicExpanded(prev => ({ ...prev, [recipe.id]: false }))
+                              }
+                            >
+                              <Text style={styles.detailToggleText}>Gizle</Text>
+                            </Pressable>
+                          </>
+                        )}
+                      </View>
+                    )}
                   </View>
                 )}
 
@@ -224,8 +300,9 @@ const HealthyRecipesScreen = () => {
                   {expandedRecipe === recipe.id ? '▲ Daralt' : '▼ Tarifi Gör'}
                 </Text>
               </Pressable>
-            </View>
-          ))}
+              </View>
+          );
+          })}
 
         </ScrollView>
       </LinearGradient>
@@ -415,6 +492,28 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#666',
     fontStyle: 'italic',
+  },
+  metabolicStack: {
+    marginTop: 12,
+    gap: 6,
+  },
+  detailToggle: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#ffe4c7',
+    alignSelf: 'flex-start',
+    backgroundColor: '#fff7ed',
+  },
+  detailToggleActive: {
+    backgroundColor: '#fee2e2',
+    borderColor: '#fecaca',
+  },
+  detailToggleText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#c2410c',
   },
   expandButton: {
     fontSize: 13,
