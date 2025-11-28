@@ -7,6 +7,9 @@ import { addQuickAction, getQuickActions } from '../logic/quickActions';
 import GlycemicInfoBadge from '../components/GlycemicInfoBadge';
 import MealRiskEstimator from '../components/MealRiskEstimator';
 import SmartMealWarnings from '../components/SmartMealWarnings';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const LATEST_NUTRITION_STATS_KEY = 'latest_nutrition_stats';
 
 const FOOD_DATABASE_BASE = [
   // Kahvaltı - Sadece Sağlıklı
@@ -76,6 +79,11 @@ const FOOD_DATABASE = FOOD_DATABASE_BASE.map(food => ({
   kitchenMeasure: KITCHEN_MEASURE_HINTS[food.id],
 }));
 
+const toNumberOrNull = (value) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
 const QUICK_CATEGORY = 'foods';
 
 const SimpleDietPlanScreen = () => {
@@ -119,6 +127,10 @@ const SimpleDietPlanScreen = () => {
     selectedFoods.reduce((sum, food) => sum + (food.fat * (food.count || 1)), 0),
     [selectedFoods]
   );
+  const totalCarbs = useMemo(() =>
+    selectedFoods.reduce((sum, food) => sum + ((food.carb ?? food.sugar ?? 0) * (food.count || 1)), 0),
+    [selectedFoods]
+  );
 
   const remainingCalories = dailyCalorieTarget - totalCalories;
   const remainingSugar = dailySugarLimit - totalSugar;
@@ -132,12 +144,26 @@ const SimpleDietPlanScreen = () => {
     }
   };
 
-  const savePlan = () => {
+  const savePlan = async () => {
     if (selectedFoods.length === 0) {
       Alert.alert('Uyarı', 'Lütfen en az bir yiyecek seçin');
       return;
     }
-    // Send stats to MainScreen and navigate
+    const payload = {
+      calories: Number(totalCalories.toFixed(0)),
+      sugar: Number(totalSugar.toFixed(1)),
+      protein: Number(totalProtein.toFixed(1)),
+      fat: Number(totalFat.toFixed(1)),
+      carbs: Number(totalCarbs.toFixed(1)),
+      updatedAt: new Date().toISOString(),
+    };
+
+    try {
+      await AsyncStorage.setItem(LATEST_NUTRITION_STATS_KEY, JSON.stringify(payload));
+    } catch (error) {
+      console.warn('Nutrition stats persist failed', error);
+    }
+
     navigation.navigate('Main', {
       stats: {
         calories: totalCalories,
@@ -145,6 +171,7 @@ const SimpleDietPlanScreen = () => {
         protein: totalProtein,
         fat: totalFat,
       },
+      nutritionStats: payload,
       calorieLimit: dailyCalorieTarget,
     });
     setSelectedFoods([]);
@@ -247,8 +274,14 @@ const SimpleDietPlanScreen = () => {
           {filteredFoods.map(food => {
             const selectedFood = selectedFoods.find(f => f.id === food.id);
             const count = selectedFood?.count || 0;
-            const carbValue = food.carb ?? (food.sugar || 0);
+            const giValue = toNumberOrNull(food.gi);
+            const sugarValue = toNumberOrNull(food.sugar) ?? 0;
+            const carbValue = toNumberOrNull(food.carb) ?? sugarValue;
+            const proteinValue = toNumberOrNull(food.protein) ?? 0;
+            const fatValue = toNumberOrNull(food.fat) ?? 0;
+            const calorieValue = toNumberOrNull(food.calories) ?? 0;
             const isExpanded = expandedDetails[food.id];
+            const canShowGlycemic = giValue !== null;
             return (
               <View key={food.id} style={[styles.foodCard, count > 0 && styles.foodCardSelected]}> 
                 <View style={styles.foodHeader}>
@@ -256,13 +289,13 @@ const SimpleDietPlanScreen = () => {
                   <View style={{ flex: 1 }}>
                     <Text style={styles.foodName}>{food.name}</Text>
                     <Text style={styles.foodMeta}>
-                      {food.calories} kcal | {food.sugar} gr şeker | {carbValue} gr karbonhidrat | {food.protein || 0} gr protein | {food.fat || 0} gr yağ
+                      {calorieValue} kcal | {sugarValue} gr şeker | {carbValue} gr karbonhidrat | {proteinValue} gr protein | {fatValue} gr yağ
                     </Text>
                     {food.kitchenMeasure && (
                       <Text style={styles.foodMeasure}>{food.kitchenMeasure}</Text>
                     )}
                     <Text style={styles.foodAdvice}>{food.advice}</Text>
-                    {typeof food.gi === 'number' && (
+                    {canShowGlycemic && (
                       <View style={styles.metabolicStack}>
                         {!isExpanded ? (
                           <Pressable
@@ -275,17 +308,17 @@ const SimpleDietPlanScreen = () => {
                           </Pressable>
                         ) : (
                           <>
-                            <GlycemicInfoBadge gi={food.gi} carbGrams={carbValue} />
+                            <GlycemicInfoBadge gi={giValue} carbGrams={carbValue} />
                             <MealRiskEstimator
-                              gi={food.gi}
+                              gi={giValue}
                               carbGrams={carbValue}
-                              proteinGrams={food.protein || 0}
+                              proteinGrams={proteinValue}
                             />
                             <SmartMealWarnings
-                              gi={food.gi}
+                              gi={giValue}
                               carbGrams={carbValue}
-                              sugarGrams={food.sugar || 0}
-                              protein={food.protein || 0}
+                              sugarGrams={sugarValue}
+                              protein={proteinValue}
                             />
                             <Pressable
                               style={[styles.detailToggle, styles.detailToggleActive]}

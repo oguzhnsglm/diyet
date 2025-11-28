@@ -9,6 +9,8 @@ import IngredientSearchScreen from './screens/IngredientSearchScreen';
 import ExerciseLibraryScreen from './screens/ExerciseLibraryScreen';
 import BloodSugarScreen from './screens/BloodSugarScreen';
 import EmergencyScreen from './screens/EmergencyScreen';
+import DiabetesInfoScreen from './screens/DiabetesInfoScreen';
+import GlucoseCalendarScreen from './screens/GlucoseCalendarScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -83,6 +85,24 @@ export default function App() {
           options={{
             title: 'Acil Durum Önerileri',
             headerStyle: { backgroundColor: '#dc2626' },
+          }}
+        />
+        <Stack.Screen
+          name="DiabetesInfo"
+          component={DiabetesInfoScreen}
+          options={{
+            title: 'Diyabet Bilgi Merkezi',
+            headerStyle: { backgroundColor: '#0ea5e9' },
+            headerTintColor: 'white',
+          }}
+        />
+        <Stack.Screen
+          name="GlucoseCalendar"
+          component={GlucoseCalendarScreen}
+          options={{
+            title: 'Günlük Takvim',
+            headerStyle: { backgroundColor: '#0ea5e9' },
+            headerTintColor: '#FFFFFF',
           }}
         />
       </Stack.Navigator>

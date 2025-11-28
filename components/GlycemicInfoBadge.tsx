@@ -68,11 +68,29 @@ const classifyGL = (value: number): Indicator => {
 };
 
 const GlycemicInfoBadge: React.FC<Props> = ({ gi, carbGrams }) => {
+  const isZeroCarb = carbGrams <= 0;
   const glycemicLoad = useMemo(() => (gi * carbGrams) / 100, [gi, carbGrams]);
   const giInfo = useMemo(() => classifyGI(gi), [gi]);
-  const glInfo = useMemo(() => classifyGL(glycemicLoad), [glycemicLoad]);
+  const glInfo = useMemo(() => {
+    if (isZeroCarb) {
+      return {
+        label: 'Karbonhidratsız',
+        level: 'low' as Level,
+        color: '#0f766e',
+        description: 'Karbonhidrat olmadığı için glisemik yük oluşmaz.',
+      };
+    }
+    return classifyGL(glycemicLoad);
+  }, [glycemicLoad, isZeroCarb]);
 
   const summary = useMemo(() => {
+    if (isZeroCarb) {
+      return {
+        title: 'Karbonhidrat içermez',
+        note: 'Protein/yağ ağırlıklı; kan şekerinde sıçrama beklenmez.',
+        color: '#0f766e',
+      };
+    }
     if (giInfo.level === 'high' || glInfo.level === 'high') {
       return {
         title: 'Hızlı yükseltebilir',
@@ -103,10 +121,10 @@ const GlycemicInfoBadge: React.FC<Props> = ({ gi, carbGrams }) => {
           percent={clampPercent((gi / 100) * 100)}
         />
         <IndicatorCard
-          title={`GY: ${glycemicLoad.toFixed(1)}`}
+          title={isZeroCarb ? 'GY: 0 (yok)' : `GY: ${glycemicLoad.toFixed(1)}`}
           info={glInfo}
           percent={clampPercent((glycemicLoad / 30) * 100)}
-          helper={`Karbonhidrat: ${carbGrams} g`}
+          helper={isZeroCarb ? 'Karbonhidrat yok → glisemik yük oluşmaz.' : `Karbonhidrat: ${carbGrams} g`}
         />
       </View>
 

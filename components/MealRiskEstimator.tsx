@@ -8,16 +8,21 @@ type Props = {
 };
 
 const MealRiskEstimator: React.FC<Props> = ({ gi, carbGrams, proteinGrams }) => {
-  const glycemicLoad = useMemo(() => (gi * carbGrams) / 100, [gi, carbGrams]);
+  const isZeroCarb = carbGrams <= 0;
+  const glycemicLoad = useMemo(() => (gi * Math.max(carbGrams, 0)) / 100, [gi, carbGrams]);
 
-  const riseRisk = useMemo(() => Math.min(100, Math.round(glycemicLoad * 2.5)), [glycemicLoad]);
+  const riseRisk = useMemo(() => {
+    if (isZeroCarb) return 0;
+    return Math.min(100, Math.round(glycemicLoad * 2.5));
+  }, [glycemicLoad, isZeroCarb]);
 
   const dropRisk = useMemo(() => {
+    if (isZeroCarb) return 10;
     if (gi < 50 && proteinGrams >= 15) return 40;
     if (gi < 50) return 20;
     if (proteinGrams >= 20) return 15;
     return 0;
-  }, [gi, proteinGrams]);
+  }, [gi, proteinGrams, isZeroCarb]);
 
   const riseLabel = useMemo(() => {
     if (riseRisk > 70) return 'Yüksek risk';
@@ -28,8 +33,13 @@ const MealRiskEstimator: React.FC<Props> = ({ gi, carbGrams, proteinGrams }) => 
   return (
     <View style={styles.card}>
       <Text style={styles.title}>Kan Şekeri Etki Tahmini</Text>
-      <Text style={styles.label}>Yükselme ihtimali: {riseRisk}% ({riseLabel})</Text>
+      <Text style={styles.label}>
+        Yükselme ihtimali: {isZeroCarb ? 'Karbonhidrat yok' : `${riseRisk}% (${riseLabel})`}
+      </Text>
       <Text style={styles.label}>Azalma ihtimali: {dropRisk}%</Text>
+      {isZeroCarb && (
+        <Text style={styles.label}>Bu öğün kan şekerini yükseltmez, protein ağırlıklı tok tutar.</Text>
+      )}
       <Text style={styles.sub}>
         *Bu değerler tıbbi öneri değildir, GI & karbonhidrat matematiksel tahminidir.
       </Text>

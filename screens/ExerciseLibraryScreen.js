@@ -93,9 +93,63 @@ const exerciseSections = [
   },
 ];
 
-const ExerciseLibraryScreen = () => {
+const LIMITS = {
+  calories: 2000,
+  sugar: 50,
+};
+
+const ExerciseLibraryScreen = ({ route }) => {
   const [quickExercises, setQuickExercises] = useState([]);
   const [highlightedId, setHighlightedId] = useState(null);
+
+  const stats = route?.params?.stats || { calories: 0, sugar: 0 };
+  const extraCalories = Math.max(0, stats.calories - LIMITS.calories);
+  const extraSugar = Math.max(0, stats.sugar - LIMITS.sugar);
+
+  const exerciseAdvice = useMemo(() => {
+    const notes = [];
+
+    if (extraCalories > 0) {
+      if (extraCalories < 100) {
+        notes.push(
+          `Bugün kalori hedefinden yaklaşık ${extraCalories.toFixed(
+            0
+          )} kcal fazla aldın. Hafif Tempo bölümündeki 15–20 dakikalık yürüyüş bu farkı dengelemeye yardımcı olabilir.`
+        );
+      } else if (extraCalories < 250) {
+        notes.push(
+          `Günlük hedefin üzerinde yaklaşık ${extraCalories.toFixed(
+            0
+          )} kcal var. Orta Tempo bölümünden 25–30 dk tempolu yürüyüş veya bisiklet iyi bir seçenek.`
+        );
+      } else {
+        notes.push(
+          `Kalori fazlan yaklaşık ${extraCalories.toFixed(
+            0
+          )} kcal. Bugün 40–45 dk yürüyüş + gün içine yayılmış hafif hareketler (merdiven, kısa yürüyüşler) planlaman faydalı olabilir.`
+        );
+      }
+    }
+
+    if (extraSugar > 0) {
+      notes.push(
+        `Şeker tüketimin günlük limitin üzerinde (~${extraSugar.toFixed(
+          0
+        )} g fazla). 10–15 dk yürüyüş ve bol su tüketimi, kan şekerindeki yükselişi dengelemeye yardımcı olabilir.`
+      );
+      notes.push(
+        'Bir sonraki öğünde basit şeker yerine sebze, protein ve tam tahıllı karbonhidrat tercih etmeye çalış.'
+      );
+    }
+
+    if (notes.length === 0) {
+      notes.push(
+        'Bugün kalori ve şeker hedeflerin genel olarak dengeli görünüyor. Yine de 15–20 dakikalık hafif tempolu bir yürüyüş, kan şekeri ve ruh hâli için her zaman iyi bir fikir. 💚'
+      );
+    }
+
+    return notes;
+  }, [extraCalories, extraSugar]);
 
   useEffect(() => {
     const load = async () => {
@@ -140,11 +194,45 @@ const ExerciseLibraryScreen = () => {
     <SafeAreaView style={styles.container}>
       <LinearGradient colors={[colors.bgGradientStart, colors.bgGradientEnd]} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.content}>
+          <View style={styles.statusCard}>
+            <Text style={styles.statusTitle}>Bugünkü Durumun</Text>
+            <View style={styles.statusRow}>
+              <View style={styles.statusBox}>
+                <Text style={styles.statusLabel}>Alınan Kalori</Text>
+                <Text style={styles.statusValue}>
+                  {stats.calories ? `${stats.calories.toFixed?.(0) || stats.calories} kcal` : '-'}
+                </Text>
+                <Text style={styles.statusSub}>
+                  Hedef: {LIMITS.calories} kcal{' '}
+                  {extraCalories > 0 ? `(≈ ${extraCalories.toFixed(0)} fazla)` : ''}
+                </Text>
+              </View>
+              <View style={styles.statusBox}>
+                <Text style={styles.statusLabel}>Alınan Şeker</Text>
+                <Text style={styles.statusValue}>
+                  {stats.sugar ? `${stats.sugar.toFixed?.(0) || stats.sugar} g` : '-'}
+                </Text>
+                <Text style={styles.statusSub}>
+                  Limit: {LIMITS.sugar} g{' '}
+                  {extraSugar > 0 ? `(≈ ${extraSugar.toFixed(0)} g fazla)` : ''}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.statusAdvice}>
+              {exerciseAdvice.map((line, idx) => (
+                <Text key={idx} style={styles.statusAdviceText}>
+                  • {line}
+                </Text>
+              ))}
+            </View>
+          </View>
+
           <View style={styles.hero}>
             <Text style={styles.heroTitle}>Egzersiz Öneri Merkezi</Text>
             <Text style={styles.heroSubtitle}>
-              Kalori hedefini desteklemek için hazır egzersiz listelerinden ilham al. Yaklaşık
-              değerler, tempo ve kiloya göre değişebilir.
+              Kalori ve şeker hedefini desteklemek için hazır egzersiz listelerinden ilham al.
+              Yaklaşık değerler, tempo ve kiloya göre değişebilir.
             </Text>
           </View>
 
@@ -231,6 +319,60 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
     paddingBottom: 32,
+  },
+  statusCard: {
+    backgroundColor: colors.card,
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 18,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: colors.cardShadow,
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  statusTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 8,
+  },
+  statusBox: {
+    flex: 1,
+    backgroundColor: '#eff6ff',
+    borderRadius: 12,
+    padding: 10,
+  },
+  statusLabel: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginBottom: 2,
+  },
+  statusValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1d4ed8',
+  },
+  statusSub: {
+    fontSize: 11,
+    color: '#4b5563',
+    marginTop: 2,
+  },
+  statusAdvice: {
+    marginTop: 6,
+  },
+  statusAdviceText: {
+    fontSize: 12,
+    color: colors.text,
+    marginBottom: 2,
+    lineHeight: 18,
   },
   hero: {
     backgroundColor: colors.card,

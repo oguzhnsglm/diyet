@@ -12,6 +12,14 @@ const SmartMealWarnings: React.FC<Props> = ({ gi, carbGrams, sugarGrams, protein
   const warnings = useMemo(() => {
     const messages: string[] = [];
 
+    if (carbGrams <= 0) {
+      messages.push('Karbonhidrat içermediği için glisemik yük oluşturmaz.');
+      if (protein >= 20) {
+        messages.push('Protein içeriği yüksek, uzun süre tokluk verebilir.');
+      }
+      return messages;
+    }
+
     if (gi >= 70) {
       messages.push('Bu besin yüksek GI içeriyor, hızlı şeker yükselişi yapabilir.');
     }
