@@ -11,6 +11,7 @@ import BloodSugarScreen from './screens/BloodSugarScreen';
 import EmergencyScreen from './screens/EmergencyScreen';
 import DiabetesInfoScreen from './screens/DiabetesInfoScreen';
 import GlucoseCalendarScreen from './screens/GlucoseCalendarScreen';
+import { supabase } from './lib/supabase';
 
 const Stack = createNativeStackNavigator();
 
@@ -20,6 +21,15 @@ export default function App() {
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 2000);
     return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const testDb = async () => {
+      const { data, error } = await supabase.from('profiles').select('*').limit(1);
+      console.log('Supabase test:', { data, error });
+    };
+
+    testDb();
   }, []);
 
   if (showSplash) {
