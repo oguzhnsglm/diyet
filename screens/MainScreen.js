@@ -1,8 +1,9 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { SafeAreaView, ScrollView, Text, View, Pressable, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRoute, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import ProgressBar from '../components/ProgressBar';
 
 const LATEST_GLUCOSE_STATS_KEY = 'latest_glucose_stats';
 const LATEST_NUTRITION_STATS_KEY = 'latest_nutrition_stats';
@@ -45,6 +46,12 @@ const MainScreen = ({ navigation }) => {
   const [nutritionStats, setNutritionStats] = useState(
     route.params?.nutritionStats || { ...DEFAULT_NUTRITION_STATS }
   );
+  const calorieGoal = 1888;
+  const macroGoals = {
+    carbs: 207,
+    protein: 115,
+    fat: 61,
+  };
 
   useEffect(() => {
     if (route.params?.glucoseStats) {
@@ -118,127 +125,168 @@ const MainScreen = ({ navigation }) => {
     }, [route.params?.glucoseStats, route.params?.nutritionStats])
   );
 
-  const menuOptions = [
-    {
-      id: 1,
-      title: '🩸 Kan Şekeri Günlüğü',
-      description: 'Ölçümlerini kaydet, A1C ve dalgalanma durumunu takip et.',
-      color: '#0ea5e9',
-      screen: 'BloodSugar',
-    },
-    {
-      id: 2,
-      title: '🍽️ Öğün & Karbonhidrat Takibi',
-      description: 'Yediğin öğünlerin karbonhidrat ve şeker miktarını hesapla.',
-      color: '#4CAF50',
-      screen: 'DietPlan',
-    },
-    {
-      id: 3,
-      title: '🏃‍♀️ Egzersiz & Aktivite',
-      description: 'Fazla kalori ve şekeri dengelemek için egzersiz önerileri.',
-      color: '#3b82f6',
-      screen: 'ExerciseLibrary',
-    },
-    {
-      id: 4,
-      title: '🚑 Acil Durum Bilgileri',
-      description: 'Hipoglisemi / hiperglisemi olduğunda ne yapman gerektiğini öğren.',
-      color: '#dc2626',
-      screen: 'Emergency',
-    },
-    {
-      id: 5,
-      title: '📚 Sağlıklı Tarifler',
-      description: 'Düşük şekerli, dengeli ve diyabete uygun tarifler.',
-      color: '#FF9800',
-      screen: 'HealthyRecipes',
-    },
-    {
-      id: 6,
-      title: '📘 Diyabet Bilgi Merkezi',
-      description: 'GI, GY, A1C, GDE ve tüm diyabet bilgilerini öğren.',
-      color: '#0ea5e9',
-      screen: 'DiabetesInfo',
-    },
-    {
-      id: 7,
-      title: '📅 Günlük Takvim',
-      description: 'Sağlıklı / zor günlerini renkli takvimde işaretle.',
-      color: '#1d4ed8',
-      screen: 'GlucoseCalendar',
-    },
+  const headerBadges = useMemo(
+    () => [
+      { id: 'gems', label: '2000', icon: '💎' },
+      { id: 'fire', label: '135', icon: '🔥' },
+      { id: 'calendar', label: new Date().toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' }), icon: '📅' },
+    ],
+    []
+  );
+
+  const caloriesEaten = nutritionStats.calories || 0;
+  const caloriesRemaining = Math.max(0, calorieGoal - caloriesEaten);
+  const caloriesBurned = 142;
+
+  const nutritionMeals = useMemo(
+    () => [
+      {
+        id: 'breakfast',
+        title: 'Breakfast',
+        calories: nutritionStats.breakfastCal || 466,
+        total: 566,
+        description: 'Fried eggs with mixed greens and avocado',
+      },
+      {
+        id: 'lunch',
+        title: 'Lunch',
+        calories: nutritionStats.lunchCal || 554,
+        total: 755,
+        description: 'Grilled salmon with quinoa and veggies',
+      },
+      {
+        id: 'dinner',
+        title: 'Dinner',
+        calories: nutritionStats.dinnerCal || 430,
+        total: 600,
+        description: 'Chicken bowl with brown rice',
+      },
+    ],
+    [nutritionStats.dinnerCal, nutritionStats.lunchCal, nutritionStats.breakfastCal]
+  );
+
+  const quickActions = [
+    { id: 1, label: 'Diary', icon: '🩸', color: '#0ea5e9', screen: 'BloodSugar' },
+    { id: 2, label: 'Recipes', icon: '🍽️', color: '#4CAF50', screen: 'HealthyRecipes' },
+    { id: 3, label: 'Fasting', icon: '⏱️', color: '#f97316', screen: 'DietPlan' },
+    { id: 4, label: 'Profile', icon: '👤', color: '#6366f1', screen: 'DiabetesInfo' },
+    { id: 5, label: 'Planner', icon: '📅', color: '#2dd4bf', screen: 'GlucoseCalendar' },
+    { id: 6, label: 'Emergency', icon: '🚑', color: '#ef4444', screen: 'Emergency' },
   ];
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['#E0F2FE', '#F5F7FA']} style={{ flex: 1 }}>
+      <LinearGradient colors={['#dff5ef', '#f5f7fb']} style={styles.backgroundGradient}>
         <ScrollView contentContainerStyle={styles.content}>
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>Diyabet Asistanın</Text>
-            <Text style={styles.headerSubtitle}>
-              Kan şekerini, öğünlerini ve egzersizini tek yerden yönet.
-            </Text>
-          </View>
-
-          <View style={styles.glucoseCard}>
-            <Text style={styles.glucoseTitle}>Bugünkü Kan Şekeri Özeti</Text>
-
-            <View style={styles.glucoseRow}>
-              <View style={styles.glucoseBox}>
-                <Text style={styles.glucoseLabel}>Son Ölçüm</Text>
-                <Text style={styles.glucoseValue}>
-                  {glucoseStats.lastValue ? `${glucoseStats.lastValue} mg/dL` : '-'}
-                </Text>
-                <Text style={styles.glucoseSub}>
-                  {glucoseStats.time || 'Detaylı liste için günlüğü aç.'}
-                </Text>
+          <View style={styles.heroCard}>
+            <View style={styles.heroHeader}>
+              <View>
+                <Text style={styles.heroToday}>Today</Text>
+                <Text style={styles.heroWeek}>Week 175</Text>
               </View>
-              <View style={styles.glucoseBox}>
-                <Text style={styles.glucoseLabel}>Tahmini A1C</Text>
-                <Text style={styles.glucoseValue}>
-                  {glucoseStats.a1cRange
-                    ? `${glucoseStats.a1cRange.min}% – ${glucoseStats.a1cRange.max}%`
-                    : '5.5% – 6.0%'}
-                </Text>
-                <Text style={styles.glucoseSub}>Kesin sonuç için laboratuvar testi gerekir.</Text>
+              <View style={styles.badgeRow}>
+                {headerBadges.map(badge => (
+                  <View key={badge.id} style={styles.badgeChip}>
+                    <Text style={styles.badgeIcon}>{badge.icon}</Text>
+                    <Text style={styles.badgeLabel}>{badge.label}</Text>
+                  </View>
+                ))}
               </View>
             </View>
 
-            <View style={styles.nutritionRow}>
-              <Text style={styles.nutritionTitle}>Bugünkü Öğün Özeti (isteğe bağlı)</Text>
-              <Text style={styles.nutritionText}>
-                Kalori: {nutritionStats.calories || 0} kcal • Karbonhidrat: {nutritionStats.carbs || 0} g • Şeker: {nutritionStats.sugar || 0} g
-              </Text>
-            </View>
-
-            <Pressable
-              style={styles.glucoseButton}
-              onPress={() => navigation.navigate('BloodSugar')}
-            >
-              <Text style={styles.glucoseButtonText}>Kan Şekeri Günlüğünü Aç</Text>
-            </Pressable>
-          </View>
-
-          {menuOptions.map(option => (
-            <Pressable
-              key={option.id}
-              style={[styles.menuCard, { borderLeftColor: option.color }]}
-              onPress={() => navigation.navigate(option.screen)}
-            >
-              <View style={styles.menuInner}>
-                <Text style={styles.menuTitle}>{option.title}</Text>
-                <Text style={styles.menuDescription}>{option.description}</Text>
-                <View style={[styles.menuBadge, { backgroundColor: option.color }]}>
-                  <Text style={styles.menuBadgeText}>Git →</Text>
+            <View style={styles.summaryCard}>
+              <View style={styles.summaryCircle}>
+                <Text style={styles.summaryRemaining}>{caloriesRemaining}</Text>
+                <Text style={styles.summaryRemainingLabel}>Remaining</Text>
+              </View>
+              <View style={styles.summaryDetails}>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Eaten</Text>
+                  <Text style={styles.summaryValue}>{caloriesEaten} kcal</Text>
+                </View>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Burned</Text>
+                  <Text style={styles.summaryValue}>{caloriesBurned} kcal</Text>
+                </View>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Last glucose</Text>
+                  <Text style={styles.summaryValue}>
+                    {glucoseStats.lastValue ? `${glucoseStats.lastValue} mg/dL` : '-'}
+                  </Text>
                 </View>
               </View>
-            </Pressable>
-          ))}
+            </View>
+
+            <View style={styles.macroCard}>
+              <Text style={styles.sectionTitle}>Summary</Text>
+              <Text style={styles.sectionLink}>Details</Text>
+            </View>
+            <View style={styles.progressGroup}>
+              <ProgressBar
+                label="Carbs"
+                value={nutritionStats.carbs || 0}
+                max={macroGoals.carbs}
+                unit=" g"
+                color="#2dd4bf"
+              />
+              <ProgressBar
+                label="Protein"
+                value={nutritionStats.protein || 0}
+                max={macroGoals.protein}
+                unit=" g"
+                color="#14b8a6"
+              />
+              <ProgressBar
+                label="Fat"
+                value={nutritionStats.fat || 0}
+                max={macroGoals.fat}
+                unit=" g"
+                color="#22c55e"
+              />
+            </View>
+          </View>
+
+          <View style={styles.card}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Nutrition</Text>
+              <Text style={styles.sectionLink}>More</Text>
+            </View>
+            {nutritionMeals.map(meal => (
+              <View key={meal.id} style={styles.mealRow}>
+                <View>
+                  <Text style={styles.mealTitle}>{meal.title}</Text>
+                  <Text style={styles.mealCalories}>{meal.calories} / {meal.total} Cal</Text>
+                  <Text style={styles.mealDescription}>{meal.description}</Text>
+                </View>
+                <Pressable style={styles.circleButton} onPress={() => navigation.navigate('DietPlan')}>
+                  <Text style={styles.circleButtonText}>+</Text>
+                </Pressable>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.card}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Quick Actions</Text>
+              <Text style={styles.sectionLink}>See all</Text>
+            </View>
+            <View style={styles.quickGrid}>
+              {quickActions.map(action => (
+                <Pressable
+                  key={action.id}
+                  style={[styles.quickTile, { backgroundColor: `${action.color}1A` }]}
+                  onPress={() => navigation.navigate(action.screen)}
+                >
+                  <Text style={styles.quickIcon}>{action.icon}</Text>
+                  <Text style={[styles.quickLabel, { color: action.color }]}>{action.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>
-              Bu uygulama tıbbi tedavinin yerini tutmaz. Diyet ve ilaç değişiklikleri için her zaman doktoruna danışmayı unutma.
+              Uygulama tıbbi tavsiye yerine geçmez; her değişiklik için uzmanına danış.
             </Text>
           </View>
         </ScrollView>
@@ -250,145 +298,205 @@ const MainScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: '#f5f5f5',
+  },
+  backgroundGradient: {
+    flex: 1,
   },
   content: {
-    padding: 20,
-    paddingBottom: 40,
+    padding: 24,
+    paddingBottom: 60,
   },
-  header: {
+  heroCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 32,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 6,
+  },
+  heroHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
-    marginTop: 10,
   },
-  headerTitle: {
+  heroToday: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1F2933',
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
-  },
-  glucoseCard: {
-    backgroundColor: '#EFF6FF',
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-  },
-  glucoseTitle: {
-    fontSize: 18,
     fontWeight: '700',
-    color: '#1D4ED8',
-    marginBottom: 10,
+    color: '#111827',
   },
-  glucoseRow: {
+  heroWeek: {
+    fontSize: 14,
+    color: '#94a3b8',
+  },
+  badgeRow: {
     flexDirection: 'row',
     gap: 10,
-    marginBottom: 10,
   },
-  glucoseBox: {
-    flex: 1,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+  badgeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f1f5f9',
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
-  glucoseLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginBottom: 2,
+  badgeIcon: {
+    marginRight: 4,
   },
-  glucoseValue: {
-    fontSize: 18,
+  badgeLabel: {
+    fontWeight: '600',
+    color: '#111827',
+  },
+  summaryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  summaryCircle: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    borderWidth: 12,
+    borderColor: '#34d399',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 20,
+    backgroundColor: '#ecfdf5',
+  },
+  summaryRemaining: {
+    fontSize: 36,
     fontWeight: '700',
     color: '#111827',
   },
-  glucoseSub: {
-    fontSize: 11,
-    color: '#6B7280',
-    marginTop: 2,
-  },
-  nutritionRow: {
-    marginTop: 4,
-    marginBottom: 10,
-  },
-  nutritionTitle: {
-    fontSize: 12,
+  summaryRemainingLabel: {
+    color: '#6b7280',
     fontWeight: '600',
-    color: '#374151',
   },
-  nutritionText: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 2,
-  },
-  glucoseButton: {
-    marginTop: 4,
-    alignSelf: 'flex-start',
-    backgroundColor: '#0EA5E9',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 999,
-  },
-  glucoseButtonText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 13,
-  },
-  menuCard: {
-    borderRadius: 16,
-    marginBottom: 18,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-    borderLeftWidth: 6,
-    backgroundColor: 'white',
-  },
-  menuInner: {
+  summaryDetails: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+    borderRadius: 20,
     padding: 18,
   },
-  menuTitle: {
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  summaryLabel: {
+    color: '#6b7280',
+    fontWeight: '600',
+  },
+  summaryValue: {
+    color: '#111827',
+    fontWeight: '700',
+  },
+  macroCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: '#111827',
+  },
+  sectionLink: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#38bdf8',
+  },
+  progressGroup: {
+    marginBottom: 8,
+  },
+  card: {
+    backgroundColor: '#ffffff',
+    borderRadius: 28,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
+  },
+  mealRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderColor: '#f1f5f9',
+  },
+  mealTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  mealCalories: {
+    fontSize: 13,
+    color: '#94a3b8',
+    marginTop: 2,
+  },
+  mealDescription: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 2,
+  },
+  circleButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#111827',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  circleButtonText: {
+    color: '#ffffff',
+    fontSize: 24,
+    fontWeight: '600',
+    marginTop: -4,
+  },
+  quickGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  quickTile: {
+    width: '30%',
+    borderRadius: 18,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickIcon: {
+    fontSize: 20,
     marginBottom: 6,
   },
-  menuDescription: {
-    fontSize: 13,
-    color: '#6B7280',
-    marginBottom: 12,
-    lineHeight: 18,
-  },
-  menuBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 999,
-  },
-  menuBadgeText: {
-    color: 'white',
-    fontSize: 13,
+  quickLabel: {
     fontWeight: '600',
   },
   footer: {
-    marginTop: 10,
-    padding: 14,
-    backgroundColor: '#DCFCE7',
-    borderRadius: 12,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: '#ecfccb',
   },
   footerText: {
-    fontSize: 12,
-    color: '#166534',
     textAlign: 'center',
+    color: '#4d7c0f',
+    fontSize: 12,
   },
 });
 
