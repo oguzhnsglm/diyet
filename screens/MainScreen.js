@@ -137,6 +137,27 @@ const MainScreen = ({ navigation }) => {
   const caloriesEaten = nutritionStats.calories || 0;
   const caloriesRemaining = Math.max(0, calorieGoal - caloriesEaten);
   const caloriesBurned = 142;
+  const libreStats = useMemo(
+    () => [
+      { label: 'Time in range', value: '82%' },
+      { label: 'Avg glucose', value: '109 mg/dL' },
+      { label: 'Low events', value: '1 / week' },
+      { label: 'High events', value: '2 / week' },
+    ],
+    []
+  );
+  const libreTrend = useMemo(
+    () => [
+      { id: 'mon', day: 'Mon', avg: 108, min: 85, max: 132 },
+      { id: 'tue', day: 'Tue', avg: 112, min: 92, max: 145 },
+      { id: 'wed', day: 'Wed', avg: 106, min: 88, max: 131 },
+      { id: 'thu', day: 'Thu', avg: 118, min: 96, max: 154 },
+      { id: 'fri', day: 'Fri', avg: 111, min: 90, max: 140 },
+      { id: 'sat', day: 'Sat', avg: 115, min: 94, max: 150 },
+      { id: 'sun', day: 'Sun', avg: 104, min: 82, max: 126 },
+    ],
+    []
+  );
 
   const nutritionMeals = useMemo(
     () => [
@@ -166,13 +187,20 @@ const MainScreen = ({ navigation }) => {
   );
 
   const quickActions = [
-    { id: 1, label: 'Diary', icon: '🩸', color: '#0ea5e9', screen: 'BloodSugar' },
+    { id: 1, label: 'Diary', icon: '💧', color: '#0ea5e9', screen: 'BloodSugar' },
     { id: 2, label: 'Recipes', icon: '🍽️', color: '#4CAF50', screen: 'HealthyRecipes' },
     { id: 3, label: 'Fasting', icon: '⏱️', color: '#f97316', screen: 'DietPlan' },
-    { id: 4, label: 'Profile', icon: '👤', color: '#6366f1', screen: 'DiabetesInfo' },
-    { id: 5, label: 'Planner', icon: '📅', color: '#2dd4bf', screen: 'GlucoseCalendar' },
-    { id: 6, label: 'Emergency', icon: '🚑', color: '#ef4444', screen: 'Emergency' },
+    { id: 4, label: 'Water', icon: '🥤', color: '#38bdf8', screen: 'WaterTracker' },
+    { id: 5, label: 'Activities', icon: '🏃', color: '#34d399', screen: 'Activities' },
+    { id: 6, label: 'Libre', icon: '📊', color: '#16a34a', screen: 'LibreStats' },
+    { id: 7, label: 'Profile', icon: '👤', color: '#6366f1', screen: 'DiabetesInfo' },
+    { id: 8, label: 'Planner', icon: '📅', color: '#2dd4bf', screen: 'GlucoseCalendar' },
+    { id: 9, label: 'Emergency', icon: '🚑', color: '#ef4444', screen: 'Emergency' },
   ];
+
+  const waterGoal = 74;
+  const waterConsumed = nutritionStats.waterOz || 72;
+  const stepsToday = nutritionStats.steps || 3612;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -200,19 +228,35 @@ const MainScreen = ({ navigation }) => {
                 <Text style={styles.summaryRemainingLabel}>Remaining</Text>
               </View>
               <View style={styles.summaryDetails}>
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Eaten</Text>
-                  <Text style={styles.summaryValue}>{caloriesEaten} kcal</Text>
+                <View style={styles.summaryRows}>
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Eaten</Text>
+                    <Text style={styles.summaryValue}>{caloriesEaten} kcal</Text>
+                  </View>
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Burned</Text>
+                    <Text style={styles.summaryValue}>{caloriesBurned} kcal</Text>
+                  </View>
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Last glucose</Text>
+                    <Text style={styles.summaryValue}>
+                      {glucoseStats.lastValue ? `${glucoseStats.lastValue} mg/dL` : '-'}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Burned</Text>
-                  <Text style={styles.summaryValue}>{caloriesBurned} kcal</Text>
-                </View>
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Last glucose</Text>
-                  <Text style={styles.summaryValue}>
-                    {glucoseStats.lastValue ? `${glucoseStats.lastValue} mg/dL` : '-'}
-                  </Text>
+                <View style={styles.librePanel}>
+                  <View style={styles.libreHeader}>
+                    <Text style={styles.libreTitle}>Libre stats</Text>
+                    <Pressable onPress={() => navigation.navigate('LibreStats')}>
+                      <Text style={styles.sectionLink}>Open</Text>
+                    </Pressable>
+                  </View>
+                  {libreStats.map(item => (
+                    <View key={item.label} style={styles.libreRow}>
+                      <Text style={styles.libreLabel}>{item.label}</Text>
+                      <Text style={styles.libreValue}>{item.value}</Text>
+                    </View>
+                  ))}
                 </View>
               </View>
             </View>
@@ -244,6 +288,29 @@ const MainScreen = ({ navigation }) => {
                 color="#22c55e"
               />
             </View>
+
+            <View style={styles.libreTableCard}>
+              <View style={styles.libreTableHeader}>
+                <Text style={styles.sectionTitle}>Libre trend</Text>
+                <Pressable onPress={() => navigation.navigate('LibreStats')}>
+                  <Text style={styles.sectionLink}>All data</Text>
+                </Pressable>
+              </View>
+              <View style={styles.libreTableRowHeader}>
+                <Text style={[styles.libreTableCell, styles.libreTableHead]}>Day</Text>
+                <Text style={[styles.libreTableCell, styles.libreTableHead]}>Avg</Text>
+                <Text style={[styles.libreTableCell, styles.libreTableHead]}>Min</Text>
+                <Text style={[styles.libreTableCell, styles.libreTableHead]}>Max</Text>
+              </View>
+              {libreTrend.map(row => (
+                <View key={row.id} style={styles.libreTableRow}>
+                  <Text style={styles.libreTableCell}>{row.day}</Text>
+                  <Text style={styles.libreTableCell}>{row.avg} mg/dL</Text>
+                  <Text style={styles.libreTableCell}>{row.min} mg/dL</Text>
+                  <Text style={styles.libreTableCell}>{row.max} mg/dL</Text>
+                </View>
+              ))}
+            </View>
           </View>
 
           <View style={styles.card}>
@@ -263,6 +330,61 @@ const MainScreen = ({ navigation }) => {
                 </Pressable>
               </View>
             ))}
+          </View>
+
+          <View style={styles.card}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Water Tracker</Text>
+              <Pressable onPress={() => navigation.navigate('WaterTracker')}>
+                <Text style={styles.sectionLink}>Open</Text>
+              </Pressable>
+            </View>
+            <View style={styles.waterHeader}>
+              <Text style={styles.waterLabel}>Water</Text>
+              <Text style={styles.waterGoal}>Goal: {waterGoal} fl oz</Text>
+            </View>
+            <Text style={styles.waterAmount}>{waterConsumed} fl oz</Text>
+            <View style={styles.cupRow}>
+              {Array.from({ length: 6 }).map((_, index) => (
+                <View key={index} style={styles.cup} />
+              ))}
+              <View style={[styles.cup, styles.cupActive]} />
+              <Pressable style={[styles.cup, styles.cupAdd]}>
+                <Text style={styles.cupAddText}>+</Text>
+              </Pressable>
+            </View>
+            <Text style={styles.waterFood}>+ Water from food: 0.0 fl oz</Text>
+          </View>
+
+          <View style={styles.card}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Activities</Text>
+              <Pressable onPress={() => navigation.navigate('Activities')}>
+                <Text style={styles.sectionLink}>Open</Text>
+              </Pressable>
+            </View>
+            <Pressable style={styles.activityCard} onPress={() => navigation.navigate('Activities')}>
+              <View>
+                <Text style={styles.activityLabel}>Steps</Text>
+                <Text style={styles.activitySub}>Automatic Tracking</Text>
+              </View>
+              <Pressable style={styles.connectButton}>
+                <Text style={styles.connectText}>Connect</Text>
+              </Pressable>
+            </Pressable>
+            <Pressable>
+              <Text style={styles.activityLink}>Track steps manually</Text>
+            </Pressable>
+            <View style={styles.activityQuickRow}>
+              <Pressable style={styles.activityQuickTile}>
+                <Text style={styles.activityQuickPlus}>+</Text>
+                <Text style={styles.activityQuickLabel}>Add</Text>
+              </Pressable>
+              <Pressable style={styles.activityQuickTile}>
+                <Text style={styles.activityQuickIcon}>🏃</Text>
+                <Text style={styles.activityQuickLabel}>{stepsToday} Cal</Text>
+              </Pressable>
+            </View>
           </View>
 
           <View style={styles.card}>
@@ -382,11 +504,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
     borderRadius: 20,
     padding: 18,
+    gap: 12,
+  },
+  summaryRows: {
+    gap: 10,
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 0,
   },
   summaryLabel: {
     color: '#6b7280',
@@ -395,6 +521,74 @@ const styles = StyleSheet.create({
   summaryValue: {
     color: '#111827',
     fontWeight: '700',
+  },
+  librePanel: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  libreHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  libreTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  libreRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  libreLabel: {
+    color: '#6b7280',
+    fontWeight: '600',
+  },
+  libreValue: {
+    color: '#0f172a',
+    fontWeight: '700',
+  },
+  libreTableCard: {
+    marginTop: 16,
+    backgroundColor: '#f8fafc',
+    borderRadius: 20,
+    padding: 16,
+  },
+  libreTableHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  libreTableRowHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#e2e8f0',
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 4,
+  },
+  libreTableRow: {
+    flexDirection: 'row',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  libreTableCell: {
+    flex: 1,
+    fontWeight: '600',
+    color: '#0f172a',
+  },
+  libreTableHead: {
+    textTransform: 'uppercase',
+    fontSize: 12,
+    color: '#64748b',
   },
   macroCard: {
     flexDirection: 'row',
@@ -431,6 +625,122 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 6 },
     elevation: 4,
+  },
+  waterHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  waterLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  waterGoal: {
+    fontSize: 13,
+    color: '#94a3b8',
+    fontWeight: '600',
+  },
+  waterAmount: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#0f172a',
+    marginVertical: 12,
+  },
+  cupRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 10,
+  },
+  cup: {
+    width: 32,
+    height: 50,
+    borderRadius: 10,
+    backgroundColor: '#e0f2fe',
+    borderWidth: 2,
+    borderColor: '#bae6fd',
+  },
+  cupActive: {
+    backgroundColor: '#0ea5e9',
+    borderColor: '#0ea5e9',
+  },
+  cupAdd: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderColor: '#d1d5db',
+  },
+  cupAddText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  waterFood: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  activityCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    padding: 16,
+    marginBottom: 10,
+  },
+  activityLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  activitySub: {
+    fontSize: 13,
+    color: '#94a3b8',
+  },
+  connectButton: {
+    backgroundColor: '#0f172a',
+    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  connectText: {
+    color: '#fff',
+    fontWeight: '700',
+  },
+  activityLink: {
+    color: '#0ea5e9',
+    fontWeight: '600',
+    marginBottom: 16,
+  },
+  activityQuickRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  activityQuickTile: {
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    paddingVertical: 14,
+  },
+  activityQuickPlus: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  activityQuickIcon: {
+    fontSize: 24,
+  },
+  activityQuickLabel: {
+    marginTop: 4,
+    fontWeight: '600',
+    color: '#4b5563',
   },
   mealRow: {
     flexDirection: 'row',

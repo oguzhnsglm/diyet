@@ -12,6 +12,9 @@ import EmergencyScreen from './screens/EmergencyScreen';
 import DiabetesInfoScreen from './screens/DiabetesInfoScreen';
 import GlucoseCalendarScreen from './screens/GlucoseCalendarScreen';
 import { supabase } from './lib/supabase';
+import WaterTrackerScreen from './screens/WaterTrackerScreen';
+import ActivitiesScreen from './screens/ActivitiesScreen';
+import LibreStatsScreen from './screens/LibreStatsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -112,6 +115,33 @@ export default function App() {
           options={{
             title: 'Günlük Takvim',
             headerStyle: { backgroundColor: '#0ea5e9' },
+            headerTintColor: '#FFFFFF',
+          }}
+        />
+        <Stack.Screen
+          name="WaterTracker"
+          component={WaterTrackerScreen}
+          options={{
+            title: 'Su Takibi',
+            headerStyle: { backgroundColor: '#0ea5e9' },
+            headerTintColor: '#FFFFFF',
+          }}
+        />
+        <Stack.Screen
+          name="Activities"
+          component={ActivitiesScreen}
+          options={{
+            title: 'Aktiviteler',
+            headerStyle: { backgroundColor: '#10b981' },
+            headerTintColor: '#FFFFFF',
+          }}
+        />
+        <Stack.Screen
+          name="LibreStats"
+          component={LibreStatsScreen}
+          options={{
+            title: 'Libre Sensör',
+            headerStyle: { backgroundColor: '#16a34a' },
             headerTintColor: '#FFFFFF',
           }}
         />
