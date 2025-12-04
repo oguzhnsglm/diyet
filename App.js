@@ -11,6 +11,8 @@ import BloodSugarScreen from './screens/BloodSugarScreen';
 import EmergencyScreen from './screens/EmergencyScreen';
 import DiabetesInfoScreen from './screens/DiabetesInfoScreen';
 import GlucoseCalendarScreen from './screens/GlucoseCalendarScreen';
+import ProfileScreen from './screens/ProfileScreen';
+import { DietProvider } from './context/DietContext';
 import { supabase } from './lib/supabase';
 import WaterTrackerScreen from './screens/WaterTrackerScreen';
 import ActivitiesScreen from './screens/ActivitiesScreen';
@@ -40,8 +42,9 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator
+    <DietProvider>
+      <NavigationContainer>
+        <Stack.Navigator
         initialRouteName="Main"
         screenOptions={{
           headerTitleAlign: 'center',
@@ -145,7 +148,17 @@ export default function App() {
             headerTintColor: '#FFFFFF',
           }}
         />
+        <Stack.Screen
+          name="Profile"
+          component={ProfileScreen}
+          options={{
+            title: 'Profil',
+            headerStyle: { backgroundColor: '#4CAF50' },
+            headerTintColor: '#FFFFFF',
+          }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
+    </DietProvider>
   );
 }

@@ -21,6 +21,37 @@ const DEFAULT_NUTRITION_STATS = {
   updatedAt: null,
 };
 
+const CALENDAR_STORAGE_KEY = 'glucose_calendar_days';
+const WEEKDAY_LABELS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+const STATUS_SEQUENCE = [null, 'good', 'mid', 'bad'];
+const STATUS_META = {
+  good: { emoji: '😊', color: '#22c55e', bg: '#dcfce7', label: 'İyi' },
+  mid: { emoji: '😐', color: '#eab308', bg: '#fef9c3', label: 'Orta' },
+  bad: { emoji: '😞', color: '#ef4444', bg: '#fee2e2', label: 'Zor' },
+  default: { emoji: '➕', color: '#94a3b8', bg: '#f1f5f9', label: 'Seç' },
+};
+
+const formatDateKey = (date) => date.toISOString().split('T')[0];
+
+const getWeekStart = (baseDate) => {
+  const date = new Date(baseDate);
+  const day = date.getDay();
+  const diff = (day + 6) % 7; // Monday as week start
+  date.setHours(0, 0, 0, 0);
+  date.setDate(date.getDate() - diff);
+  return date;
+};
+
+const buildWeekDays = (startDate) => {
+  const days = [];
+  for (let i = 0; i < 7; i += 1) {
+    const d = new Date(startDate);
+    d.setDate(d.getDate() + i);
+    days.push(d);
+  }
+  return days;
+};
+
 const formatStoredTime = isoString => {
   if (!isoString) return null;
   try {
@@ -46,6 +77,9 @@ const MainScreen = ({ navigation }) => {
   const [nutritionStats, setNutritionStats] = useState(
     route.params?.nutritionStats || { ...DEFAULT_NUTRITION_STATS }
   );
+  const [activeTab, setActiveTab] = useState('diary');
+  const [calendarDays, setCalendarDays] = useState({});
+  const [currentWeekStart, setCurrentWeekStart] = useState(() => getWeekStart(new Date()));
   const calorieGoal = 1888;
   const macroGoals = {
     carbs: 207,
@@ -125,6 +159,27 @@ const MainScreen = ({ navigation }) => {
     }, [route.params?.glucoseStats, route.params?.nutritionStats])
   );
 
+  useFocusEffect(
+    useCallback(() => {
+      let mounted = true;
+      const loadPlanner = async () => {
+        try {
+          const stored = await AsyncStorage.getItem(CALENDAR_STORAGE_KEY);
+          if (!mounted) return;
+          setCalendarDays(stored ? JSON.parse(stored) : {});
+          setCurrentWeekStart(getWeekStart(new Date()));
+        } catch (error) {
+          console.warn('Weekly planner data failed', error);
+        }
+      };
+
+      loadPlanner();
+      return () => {
+        mounted = false;
+      };
+    }, [])
+  );
+
   const headerBadges = useMemo(
     () => [
       { id: 'gems', label: '2000', icon: '💎' },
@@ -137,27 +192,125 @@ const MainScreen = ({ navigation }) => {
   const caloriesEaten = nutritionStats.calories || 0;
   const caloriesRemaining = Math.max(0, calorieGoal - caloriesEaten);
   const caloriesBurned = 142;
-  const libreStats = useMemo(
+  const waterGoal = 74;
+  const waterConsumed = nutritionStats.waterOz || 72;
+  const stepsToday = nutritionStats.steps || 3612;
+
+  const bottomTabs = useMemo(
     () => [
-      { label: 'Time in range', value: '82%' },
-      { label: 'Avg glucose', value: '109 mg/dL' },
-      { label: 'Low events', value: '1 / week' },
-      { label: 'High events', value: '2 / week' },
+      { id: 'diary', label: 'Diary', icon: '📘', screen: 'BloodSugar' },
+      { id: 'recipes', label: 'Recipes', icon: '👩‍🍳', screen: 'HealthyRecipes' },
+      { id: 'fasting', label: 'Fasting', icon: '⏱️', screen: 'DietPlan' },
+      { id: 'profile', label: 'Profile', icon: '👤', screen: 'Profile' },
+      { id: 'pro', label: 'Pro', icon: '🚀', screen: null },
     ],
     []
   );
-  const libreTrend = useMemo(
+
+  const handleBottomTabPress = (tab) => {
+    setActiveTab(tab.id);
+    if (tab.screen) {
+      navigation.navigate(tab.screen);
+    }
+  };
+
+  const handleToggleDayStatus = async (dayKey) => {
+    try {
+      const existing = calendarDays[dayKey] || {};
+      const currentStatus = existing.status || null;
+      const currentIndex = STATUS_SEQUENCE.indexOf(currentStatus);
+      const nextStatus = STATUS_SEQUENCE[(currentIndex + 1) % STATUS_SEQUENCE.length];
+      const updatedEntry = { ...existing };
+
+      if (nextStatus) {
+        updatedEntry.status = nextStatus;
+      } else {
+        delete updatedEntry.status;
+      }
+
+      const nextCalendar = { ...calendarDays, [dayKey]: updatedEntry };
+      if (!nextStatus && !updatedEntry.note) {
+        delete nextCalendar[dayKey];
+      }
+
+      setCalendarDays(nextCalendar);
+      await AsyncStorage.setItem(CALENDAR_STORAGE_KEY, JSON.stringify(nextCalendar));
+    } catch (error) {
+      console.warn('Week day status değiştirilemedi', error);
+    }
+  };
+  const metricCircles = useMemo(
     () => [
-      { id: 'mon', day: 'Mon', avg: 108, min: 85, max: 132 },
-      { id: 'tue', day: 'Tue', avg: 112, min: 92, max: 145 },
-      { id: 'wed', day: 'Wed', avg: 106, min: 88, max: 131 },
-      { id: 'thu', day: 'Thu', avg: 118, min: 96, max: 154 },
-      { id: 'fri', day: 'Fri', avg: 111, min: 90, max: 140 },
-      { id: 'sat', day: 'Sat', avg: 115, min: 94, max: 150 },
-      { id: 'sun', day: 'Sun', avg: 104, min: 82, max: 126 },
+      {
+        id: 'remaining',
+        icon: '🧮',
+        label: 'Kalan Kalori',
+        value: caloriesRemaining,
+        unit: 'kcal',
+        hint: 'Günün hedefi',
+        color: '#22c55e',
+      },
+      {
+        id: 'consumed',
+        icon: '🍽️',
+        label: 'Alınan Kalori',
+        value: caloriesEaten,
+        unit: 'kcal',
+        hint: 'Toplam tüketim',
+        color: '#0ea5e9',
+      },
+      {
+        id: 'libre',
+        icon: '🩸',
+        label: 'Libre Ölçümü',
+        value: glucoseStats.lastValue || '—',
+        unit: glucoseStats.lastValue ? 'mg/dL' : '',
+        hint: glucoseStats.time ? glucoseStats.time : 'Henüz veri yok',
+        color: '#f97316',
+      },
+      {
+        id: 'burned',
+        icon: '🔥',
+        label: 'Yakılan Kalori',
+        value: caloriesBurned,
+        unit: 'kcal',
+        hint: 'Aktivite',
+        color: '#ef4444',
+      },
+      {
+        id: 'water',
+        icon: '💧',
+        label: 'Su Takibi',
+        value: waterConsumed,
+        unit: 'fl oz',
+        hint: `Hedef ${waterGoal} fl oz`,
+        color: '#3b82f6',
+      },
     ],
-    []
+    [caloriesRemaining, caloriesEaten, glucoseStats.lastValue, glucoseStats.time, caloriesBurned, waterConsumed, waterGoal]
   );
+
+  const weekDays = useMemo(() => {
+    const weekList = buildWeekDays(currentWeekStart);
+    return weekList.map((date, index) => {
+      const key = formatDateKey(date);
+      const stored = calendarDays[key] || {};
+      return {
+        key,
+        date,
+        status: stored.status || null,
+        label: WEEKDAY_LABELS[index],
+      };
+    });
+  }, [calendarDays, currentWeekStart]);
+
+  const weekRangeLabel = useMemo(() => {
+    if (!weekDays.length) return '';
+    const formatter = new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'long' });
+    const startText = formatter.format(weekDays[0].date);
+    const endText = formatter.format(weekDays[weekDays.length - 1].date);
+    return `${startText} - ${endText}`;
+  }, [weekDays]);
 
   const nutritionMeals = useMemo(
     () => [
@@ -193,19 +346,16 @@ const MainScreen = ({ navigation }) => {
     { id: 4, label: 'Water', icon: '🥤', color: '#38bdf8', screen: 'WaterTracker' },
     { id: 5, label: 'Activities', icon: '🏃', color: '#34d399', screen: 'Activities' },
     { id: 6, label: 'Libre', icon: '📊', color: '#16a34a', screen: 'LibreStats' },
-    { id: 7, label: 'Profile', icon: '👤', color: '#6366f1', screen: 'DiabetesInfo' },
+    { id: 7, label: 'Profile', icon: '👤', color: '#6366f1', screen: 'Profile' },
     { id: 8, label: 'Planner', icon: '📅', color: '#2dd4bf', screen: 'GlucoseCalendar' },
     { id: 9, label: 'Emergency', icon: '🚑', color: '#ef4444', screen: 'Emergency' },
   ];
 
-  const waterGoal = 74;
-  const waterConsumed = nutritionStats.waterOz || 72;
-  const stepsToday = nutritionStats.steps || 3612;
-
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient colors={['#dff5ef', '#f5f7fb']} style={styles.backgroundGradient}>
-        <ScrollView contentContainerStyle={styles.content}>
+        <View style={{ flex: 1 }}>
+          <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.heroCard}>
             <View style={styles.heroHeader}>
               <View>
@@ -222,43 +372,71 @@ const MainScreen = ({ navigation }) => {
               </View>
             </View>
 
-            <View style={styles.summaryCard}>
-              <View style={styles.summaryCircle}>
-                <Text style={styles.summaryRemaining}>{caloriesRemaining}</Text>
-                <Text style={styles.summaryRemainingLabel}>Remaining</Text>
-              </View>
-              <View style={styles.summaryDetails}>
-                <View style={styles.summaryRows}>
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Eaten</Text>
-                    <Text style={styles.summaryValue}>{caloriesEaten} kcal</Text>
+            <View style={styles.metricGrid}>
+              {metricCircles.map(card => (
+                <View
+                  key={card.id}
+                  style={[styles.metricTile, card.id === 'water' && styles.metricTileCenter]}
+                >
+                  <View
+                    style={[
+                      styles.metricCircle,
+                      {
+                        borderColor: card.color,
+                        backgroundColor: `${card.color}20`,
+                      },
+                    ]}
+                  >
+                    <Text style={styles.metricValue}>{card.value}</Text>
+                    {card.unit ? <Text style={styles.metricUnit}>{card.unit}</Text> : null}
                   </View>
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Burned</Text>
-                    <Text style={styles.summaryValue}>{caloriesBurned} kcal</Text>
-                  </View>
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Last glucose</Text>
-                    <Text style={styles.summaryValue}>
-                      {glucoseStats.lastValue ? `${glucoseStats.lastValue} mg/dL` : '-'}
-                    </Text>
-                  </View>
+                  <Text style={styles.metricLabel}>
+                    {card.icon} {card.label}
+                  </Text>
+                  <Text style={styles.metricHint}>{card.hint}</Text>
                 </View>
-                <View style={styles.librePanel}>
-                  <View style={styles.libreHeader}>
-                    <Text style={styles.libreTitle}>Libre stats</Text>
-                    <Pressable onPress={() => navigation.navigate('LibreStats')}>
-                      <Text style={styles.sectionLink}>Open</Text>
+              ))}
+            </View>
+
+            <View style={styles.weeklyCard}>
+              <View style={styles.weeklyHeader}>
+                <View>
+                  <Text style={styles.sectionTitle}>Haftalık çizelge</Text>
+                  <Text style={styles.weeklySubtitle}>{weekRangeLabel}</Text>
+                </View>
+                <Pressable
+                  style={styles.weeklyPlannerLink}
+                  onPress={() => navigation.navigate('GlucoseCalendar')}
+                >
+                  <Text style={styles.sectionLink}>Planner</Text>
+                </Pressable>
+              </View>
+              <View style={styles.weeklyRow}>
+                {weekDays.map((day) => {
+                  const meta = day.status ? STATUS_META[day.status] : STATUS_META.default;
+                  return (
+                    <Pressable
+                      key={day.key}
+                      style={[styles.weekDayTile, { backgroundColor: meta.bg, borderColor: meta.color }]}
+                      onPress={() => handleToggleDayStatus(day.key)}
+                    >
+                      <Text style={[styles.weekDayLabel, { color: meta.color }]}>{day.label}</Text>
+                      <Text style={styles.weekDayEmoji}>{meta.emoji}</Text>
                     </Pressable>
-                  </View>
-                  {libreStats.map(item => (
-                    <View key={item.label} style={styles.libreRow}>
-                      <Text style={styles.libreLabel}>{item.label}</Text>
-                      <Text style={styles.libreValue}>{item.value}</Text>
-                    </View>
-                  ))}
-                </View>
+                  );
+                })}
               </View>
+              <View style={styles.weekLegendRow}>
+                {['good', 'mid', 'bad'].map((key) => (
+                  <View key={key} style={styles.weekLegendItem}>
+                    <Text style={[styles.weekLegendEmoji, { color: STATUS_META[key].color }]}>
+                      {STATUS_META[key].emoji}
+                    </Text>
+                    <Text style={styles.weekLegendText}>{STATUS_META[key].label}</Text>
+                  </View>
+                ))}
+              </View>
+              <Text style={styles.weekHint}>Emoji seçimlerin Planner sekmesiyle senkronize edilir.</Text>
             </View>
 
             <View style={styles.macroCard}>
@@ -289,28 +467,6 @@ const MainScreen = ({ navigation }) => {
               />
             </View>
 
-            <View style={styles.libreTableCard}>
-              <View style={styles.libreTableHeader}>
-                <Text style={styles.sectionTitle}>Libre trend</Text>
-                <Pressable onPress={() => navigation.navigate('LibreStats')}>
-                  <Text style={styles.sectionLink}>All data</Text>
-                </Pressable>
-              </View>
-              <View style={styles.libreTableRowHeader}>
-                <Text style={[styles.libreTableCell, styles.libreTableHead]}>Day</Text>
-                <Text style={[styles.libreTableCell, styles.libreTableHead]}>Avg</Text>
-                <Text style={[styles.libreTableCell, styles.libreTableHead]}>Min</Text>
-                <Text style={[styles.libreTableCell, styles.libreTableHead]}>Max</Text>
-              </View>
-              {libreTrend.map(row => (
-                <View key={row.id} style={styles.libreTableRow}>
-                  <Text style={styles.libreTableCell}>{row.day}</Text>
-                  <Text style={styles.libreTableCell}>{row.avg} mg/dL</Text>
-                  <Text style={styles.libreTableCell}>{row.min} mg/dL</Text>
-                  <Text style={styles.libreTableCell}>{row.max} mg/dL</Text>
-                </View>
-              ))}
-            </View>
           </View>
 
           <View style={styles.card}>
@@ -411,7 +567,27 @@ const MainScreen = ({ navigation }) => {
               Uygulama tıbbi tavsiye yerine geçmez; her değişiklik için uzmanına danış.
             </Text>
           </View>
-        </ScrollView>
+          </ScrollView>
+          <View style={styles.bottomNavBar}>
+            {bottomTabs.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <Pressable
+                  key={tab.id}
+                  style={[styles.bottomNavItem, isActive && styles.bottomNavItemActive]}
+                  onPress={() => handleBottomTabPress(tab)}
+                >
+                  <Text style={[styles.bottomNavIcon, isActive && styles.bottomNavIconActive]}>
+                    {tab.icon}
+                  </Text>
+                  <Text style={[styles.bottomNavLabel, isActive && styles.bottomNavLabelActive]}>
+                    {tab.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
       </LinearGradient>
     </SafeAreaView>
   );
@@ -427,7 +603,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 24,
-    paddingBottom: 60,
+    paddingBottom: 140,
   },
   heroCard: {
     backgroundColor: '#ffffff',
@@ -455,6 +631,60 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#94a3b8',
   },
+  metricGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  metricTile: {
+    width: '47%',
+    backgroundColor: '#f8fafc',
+    borderRadius: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    marginBottom: 12,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
+  },
+  metricTileCenter: {
+    width: '70%',
+    alignSelf: 'center',
+  },
+  metricCircle: {
+    width: 86,
+    height: 86,
+    borderRadius: 43,
+    borderWidth: 10,
+    alignSelf: 'center',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  metricValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  metricUnit: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  metricLabel: {
+    textAlign: 'center',
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  metricHint: {
+    textAlign: 'center',
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 2,
+  },
   badgeRow: {
     flexDirection: 'row',
     gap: 10,
@@ -474,121 +704,117 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#111827',
   },
-  summaryCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  summaryCircle: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    borderWidth: 12,
-    borderColor: '#34d399',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 20,
-    backgroundColor: '#ecfdf5',
-  },
-  summaryRemaining: {
-    fontSize: 36,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  summaryRemainingLabel: {
-    color: '#6b7280',
-    fontWeight: '600',
-  },
-  summaryDetails: {
-    flex: 1,
-    backgroundColor: '#f8fafc',
-    borderRadius: 20,
-    padding: 18,
-    gap: 12,
-  },
-  summaryRows: {
-    gap: 10,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 0,
-  },
-  summaryLabel: {
-    color: '#6b7280',
-    fontWeight: '600',
-  },
-  summaryValue: {
-    color: '#111827',
-    fontWeight: '700',
-  },
-  librePanel: {
+  weeklyCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderRadius: 28,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
   },
-  libreHeader: {
+  weeklyHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 12,
   },
-  libreTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#111827',
+  weeklySubtitle: {
+    fontSize: 13,
+    color: '#94a3b8',
+    marginTop: 2,
   },
-  libreRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 4,
-  },
-  libreLabel: {
-    color: '#6b7280',
-    fontWeight: '600',
-  },
-  libreValue: {
-    color: '#0f172a',
-    fontWeight: '700',
-  },
-  libreTableCard: {
-    marginTop: 16,
-    backgroundColor: '#f8fafc',
-    borderRadius: 20,
-    padding: 16,
-  },
-  libreTableHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  libreTableRowHeader: {
-    flexDirection: 'row',
-    backgroundColor: '#e2e8f0',
-    borderRadius: 12,
-    paddingVertical: 8,
+  weeklyPlannerLink: {
     paddingHorizontal: 12,
-    marginBottom: 4,
-  },
-  libreTableRow: {
-    flexDirection: 'row',
     paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderColor: '#e2e8f0',
+    borderRadius: 14,
+    backgroundColor: '#e0f2fe',
   },
-  libreTableCell: {
-    flex: 1,
-    fontWeight: '600',
-    color: '#0f172a',
+  weeklyRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 14,
   },
-  libreTableHead: {
-    textTransform: 'uppercase',
+  weekDayTile: {
+    width: 45,
+    height: 70,
+    borderRadius: 18,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  weekDayLabel: {
     fontSize: 12,
-    color: '#64748b',
+    fontWeight: '700',
+  },
+  weekDayEmoji: {
+    fontSize: 20,
+    marginTop: 4,
+  },
+  weekLegendRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 6,
+  },
+  weekLegendItem: {
+    alignItems: 'center',
+  },
+  weekLegendEmoji: {
+    fontSize: 18,
+    marginBottom: 2,
+  },
+  weekLegendText: {
+    fontSize: 12,
+    color: '#475569',
+    fontWeight: '600',
+  },
+  weekHint: {
+    marginTop: 8,
+    fontSize: 12,
+    color: '#6b7280',
+    textAlign: 'center',
+  },
+  bottomNavBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    paddingVertical: 10,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: -4 },
+    elevation: 12,
+  },
+  bottomNavItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+    borderRadius: 18,
+  },
+  bottomNavItemActive: {
+    backgroundColor: '#d1fae5',
+  },
+  bottomNavIcon: {
+    fontSize: 18,
+    color: '#94a3b8',
+  },
+  bottomNavIconActive: {
+    color: '#059669',
+  },
+  bottomNavLabel: {
+    fontSize: 12,
+    marginTop: 2,
+    color: '#94a3b8',
+    fontWeight: '600',
+  },
+  bottomNavLabelActive: {
+    color: '#047857',
   },
   macroCard: {
     flexDirection: 'row',

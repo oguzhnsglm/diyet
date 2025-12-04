@@ -1,0 +1,252 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AuthUser {
+  id                     String                  @id @db.Uuid
+  email                  String?                 @db.Text
+  createdAt              DateTime?               @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime?               @map("updated_at") @db.Timestamptz(6)
+  profile                Profile?
+  recipes                Recipe[]                @relation("RecipeAuthors")
+  meals                  Meal[]
+  bloodGlucoseReadings   BloodGlucoseReading[]
+  recipeLikes            RecipeLike[]
+  recipeFavorites        RecipeFavorite[]
+  recipeComments         RecipeComment[]
+  exerciseSuggestions    ExerciseSuggestion[]
+  dailyPlans             DailyPlan[]
+  dailySummaries         DailySummary[]
+  glucoseDailySummaries  GlucoseDailySummary[]
+
+  @@schema("auth")
+  @@map("users")
+}
+
+model Profile {
+  userId                 String                  @id @map("user_id") @db.Uuid
+  username               String?                 @db.Text
+  email                  String?                 @db.Text
+  heightCm               Decimal?                @map("height_cm") @db.Decimal(10, 2)
+  weightKg               Decimal?                @map("weight_kg") @db.Decimal(10, 2)
+  gender                 String?                 @db.Text
+  birthDate              DateTime?               @map("birth_date") @db.Date
+  diabetesType           String?                 @map("diabetes_type") @db.Text
+  diabetesDiagnosisDate  DateTime?               @map("diabetes_diagnosis_date") @db.Date
+  createdAt              DateTime?               @map("created_at") @db.Timestamptz(6)
+  user                   AuthUser                @relation(fields: [userId], references: [id])
+  diabetesSettings       DiabetesTypeSettings?   @relation(fields: [diabetesType], references: [diabetesType])
+  meals                  Meal[]
+  recipes                Recipe[]                @relation("ProfileRecipes")
+  recipeComments         RecipeComment[]
+  recipeLikes            RecipeLike[]
+  recipeFavorites        RecipeFavorite[]
+  dailyPlans             DailyPlan[]
+  dailySummaries         DailySummary[]
+  glucoseDailySummaries  GlucoseDailySummary[]
+  bloodGlucoseReadings   BloodGlucoseReading[]
+
+  @@map("profiles")
+}
+
+model DiabetesTypeSettings {
+  diabetesType        String    @id @map("diabetes_type") @db.Text
+  displayName         String?   @map("display_name") @db.Text
+  hypoLimitMgDl       Decimal?  @map("hypo_limit_mg_dl") @db.Decimal(10, 2)
+  hyperLimitMgDl      Decimal?  @map("hyper_limit_mg_dl") @db.Decimal(10, 2)
+  fastingMinMgDl      Decimal?  @map("fasting_min_mg_dl") @db.Decimal(10, 2)
+  fastingMaxMgDl      Decimal?  @map("fasting_max_mg_dl") @db.Decimal(10, 2)
+  postprandialMinMgDl Decimal?  @map("postprandial_min_mg_dl") @db.Decimal(10, 2)
+  postprandialMaxMgDl Decimal?  @map("postprandial_max_mg_dl") @db.Decimal(10, 2)
+  hba1cTargetMax      Decimal?  @map("hba1c_target_max") @db.Decimal(10, 2)
+  hba1cWarningMax     Decimal?  @map("hba1c_warning_max") @db.Decimal(10, 2)
+  profiles            Profile[]
+
+  @@map("diabetes_type_settings")
+}
+
+model DailyPlan {
+  id                  BigInt    @id @default(autoincrement()) @db.BigInt
+  userId              String    @map("user_id") @db.Uuid
+  planDate            DateTime? @map("plan_date") @db.Date
+  targetCalories      Int?      @map("target_calories") @db.Int4
+  targetProteinGrams  Decimal?  @map("target_protein_grams") @db.Decimal(10, 2)
+  targetFatGrams      Decimal?  @map("target_fat_grams") @db.Decimal(10, 2)
+  targetSugarGrams    Decimal?  @map("target_sugar_grams") @db.Decimal(10, 2)
+  targetBurnedCalorie Int?      @map("target_burned_calories") @db.Int4
+  netCalorieGoal      Int?      @map("net_calorie_goal") @db.Int4
+  notes               String?   @db.Text
+  user                AuthUser  @relation(fields: [userId], references: [id])
+
+  @@map("daily_plans")
+}
+
+model DailySummary {
+  id               BigInt    @id @default(autoincrement()) @db.BigInt
+  userId           String    @map("user_id") @db.Uuid
+  summaryDate      DateTime? @map("summary_date") @db.Date
+  totalCalories    Int?      @map("total_calories") @db.Int4
+  totalProtein     Decimal?  @map("total_protein_grams") @db.Decimal(10, 2)
+  totalFat         Decimal?  @map("total_fat_grams") @db.Decimal(10, 2)
+  totalSugar       Decimal?  @map("total_sugar_grams") @db.Decimal(10, 2)
+  user             AuthUser  @relation(fields: [userId], references: [id])
+
+  @@map("daily_summaries")
+}
+
+model GlucoseDailySummary {
+  userId            String    @map("user_id") @db.Uuid
+  summaryDate       DateTime  @map("summary_date") @db.Date
+  avgGlucose        Decimal?  @map("avg_glucose") @db.Decimal(10, 2)
+  minGlucose        Decimal?  @map("min_glucose") @db.Decimal(10, 2)
+  maxGlucose        Decimal?  @map("max_glucose") @db.Decimal(10, 2)
+  measurementsCount Int?      @map("measurements_count") @db.Int4
+  hypoEventsCount   Int?      @map("hypo_events_count") @db.Int4
+  hyperEventsCount  Int?      @map("hyper_events_count") @db.Int4
+  user              AuthUser  @relation(fields: [userId], references: [id])
+
+  @@id([userId, summaryDate])
+  @@map("glucose_daily_summaries")
+}
+
+model BloodGlucoseReading {
+  id          BigInt    @id @default(autoincrement()) @db.BigInt
+  userId      String    @map("user_id") @db.Uuid
+  measuredAt  DateTime? @map("measured_at") @db.Timestamptz(6)
+  valueMgDl   Decimal?  @map("value_mg_dl") @db.Decimal(10, 2)
+  context     String?   @db.Text
+  note        String?   @db.Text
+  createdAt   DateTime? @map("created_at") @db.Timestamptz(6)
+  user        AuthUser  @relation(fields: [userId], references: [id])
+
+  @@map("blood_glucose_readings")
+}
+
+model ExerciseLibrary {
+  id                       BigInt    @id @default(autoincrement()) @db.BigInt
+  name                     String    @db.Text
+  category                 String?   @db.Text
+  intensityLevel           String?   @map("intensity_level") @db.Text
+  minBmi                   Decimal?  @map("min_bmi") @db.Decimal(10, 2)
+  maxBmi                   Decimal?  @map("max_bmi") @db.Decimal(10, 2)
+  estimatedBurnedCalories  Int?      @map("estimated_burned_calories") @db.Int4
+  recommendedDurationMins  Int?      @map("recommended_duration_minutes") @db.Int4
+  description              String?   @db.Text
+  createdAt                DateTime? @map("created_at") @db.Timestamptz(6)
+
+  @@map("exercise_library")
+}
+
+model ExerciseSuggestion {
+  id                      BigInt    @id @default(autoincrement()) @db.BigInt
+  userId                  String    @map("user_id") @db.Uuid
+  suggestionDate          DateTime? @map("suggestion_date") @db.Date
+  title                   String    @db.Text
+  description             String?   @db.Text
+  estimatedBurnedCalories Int?      @map("estimated_burned_calories") @db.Int4
+  createdAt               DateTime? @map("created_at") @db.Timestamptz(6)
+  user                    AuthUser  @relation(fields: [userId], references: [id])
+
+  @@map("exercise_suggestions")
+}
+
+model Recipe {
+  id           BigInt        @id @default(autoincrement()) @db.BigInt
+  createdById  String?       @map("created_by") @db.Uuid
+  isSystem     Boolean?      @map("is_system") @db.Boolean
+  title        String        @db.Text
+  description  String?       @db.Text
+  instructions String?       @db.Text
+  calories     Int?          @db.Int4
+  proteinGrams Decimal?      @map("protein_grams") @db.Decimal(10, 2)
+  fatGrams     Decimal?      @map("fat_grams") @db.Decimal(10, 2)
+  sugarGrams   Decimal?      @map("sugar_grams") @db.Decimal(10, 2)
+  imageUrl     String?       @map("image_url") @db.Text
+  createdAt    DateTime?     @map("created_at") @db.Timestamptz(6)
+  author       AuthUser?     @relation("RecipeAuthors", fields: [createdById], references: [id])
+  tagRelations RecipeTagRelation[]
+  comments     RecipeComment[]
+  favorites    RecipeFavorite[]
+  likes        RecipeLike[]
+  meals        Meal[]
+
+  @@map("recipes")
+}
+
+model RecipeTag {
+  id        BigInt               @id @default(autoincrement()) @db.BigInt
+  name      String               @db.Text
+  slug      String               @db.Text
+  createdAt DateTime?            @map("created_at") @db.Timestamptz(6)
+  relations RecipeTagRelation[]
+
+  @@map("recipe_tags")
+}
+
+model RecipeTagRelation {
+  recipeId BigInt   @map("recipe_id") @db.BigInt
+  tagId    BigInt   @map("tag_id") @db.BigInt
+  createdAt DateTime? @map("created_at") @db.Timestamptz(6)
+  recipe   Recipe   @relation(fields: [recipeId], references: [id])
+  tag      RecipeTag @relation(fields: [tagId], references: [id])
+
+  @@id([recipeId, tagId])
+  @@map("recipe_tag_relations")
+}
+
+model RecipeComment {
+  id         BigInt    @id @default(autoincrement()) @db.BigInt
+  recipeId   BigInt    @map("recipe_id") @db.BigInt
+  userId     String    @map("user_id") @db.Uuid
+  comment    String    @map("comment_text") @db.Text
+  createdAt  DateTime? @map("created_at") @db.Timestamptz(6)
+  recipe     Recipe    @relation(fields: [recipeId], references: [id])
+  user       AuthUser  @relation(fields: [userId], references: [id])
+
+  @@map("recipe_comments")
+}
+
+model RecipeFavorite {
+  recipeId  BigInt   @map("recipe_id") @db.BigInt
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime? @map("created_at") @db.Timestamptz(6)
+  recipe    Recipe   @relation(fields: [recipeId], references: [id])
+  user      AuthUser @relation(fields: [userId], references: [id])
+
+  @@id([recipeId, userId])
+  @@map("recipe_favorites")
+}
+
+model RecipeLike {
+  recipeId  BigInt   @map("recipe_id") @db.BigInt
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime? @map("created_at") @db.Timestamptz(6)
+  recipe    Recipe   @relation(fields: [recipeId], references: [id])
+  user      AuthUser @relation(fields: [userId], references: [id])
+
+  @@id([recipeId, userId])
+  @@map("recipe_likes")
+}
+
+model Meal {
+  id          BigInt    @id @default(autoincrement()) @db.BigInt
+  userId      String    @map("user_id") @db.Uuid
+  eatenAt     DateTime? @map("eaten_at") @db.Date
+  mealType    String?   @map("meal_type") @db.Text
+  recipeId    BigInt?   @map("recipe_id") @db.BigInt
+  customName  String?   @map("custom_name") @db.Text
+  calories    Int?      @db.Int4
+  protein     Decimal?  @map("protein_grams") @db.Decimal(10, 2)
+  fat         Decimal?  @map("fat_grams") @db.Decimal(10, 2)
+  sugar       Decimal?  @map("sugar_grams") @db.Decimal(10, 2)
+  createdAt   DateTime? @map("created_at") @db.Timestamptz(6)
+  user        AuthUser  @relation(fields: [userId], references: [id])
+  recipe      Recipe?   @relation(fields: [recipeId], references: [id])
+
+  @@map("meals")
+}
