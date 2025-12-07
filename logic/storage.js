@@ -1,4 +1,72 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
+
+const USER_KEY = '@diet-user-profile';
+const MEALS_KEY = '@diet-meals-by-day';
+
+const DEFAULT_USER = {
+  name: 'Demo Kullanıcı',
+  age: 34,
+  gender: 'kadın',
+  heightCm: 168,
+  weightKg: 72,
+  targetWeightKg: 65,
+  dailyCalorieTarget: 1800,
+  dailySugarLimitGr: 50,
+  email: 'demo@diyetapp.com',
+  phoneNumber: '+90 555 555 55 55',
+  lastLoginAt: new Date().toISOString(),
+};
+
+const withDefaultUser = (payload = {}) => ({
+  ...DEFAULT_USER,
+  ...payload,
+  lastLoginAt: payload?.lastLoginAt || new Date().toISOString(),
+});
+
+const getStoredMeals = async () => {
+  const raw = await AsyncStorage.getItem(MEALS_KEY);
+  return raw ? JSON.parse(raw) : {};
+};
+
+const persistMeals = async (data) => AsyncStorage.setItem(MEALS_KEY, JSON.stringify(data));
+
+export const getUser = async () => {
+  try {
+    const raw = await AsyncStorage.getItem(USER_KEY);
+    if (raw) {
+      return JSON.parse(raw);
+    }
+    const seeded = withDefaultUser();
+    await AsyncStorage.setItem(USER_KEY, JSON.stringify(seeded));
+    return seeded;
+  } catch (error) {
+    console.warn('Kullanıcı bilgisi okunamadı', error);
+    return withDefaultUser();
+  }
+};
+
+export const saveUser = async (userData) => {
+  const payload = withDefaultUser(userData);
+  await AsyncStorage.setItem(USER_KEY, JSON.stringify(payload));
+  return payload;
+};
+
+export const getMealsByDate = async (dateISO) => {
+  const meals = await getStoredMeals();
+  return meals[dateISO] || [];
+};
+
+export const addMeal = async (meal) => {
+  if (!meal?.dateISO) {
+    throw new Error('Meal nesnesi dateISO alanını içermeli');
+  }
+  const meals = await getStoredMeals();
+  const dayMeals = meals[meal.dateISO] || [];
+  meals[meal.dateISO] = [meal, ...dayMeals];
+  await persistMeals(meals);
+  return meal;
+};
 
 const throwIfError = (error, context) => {
   if (error) {

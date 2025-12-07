@@ -199,7 +199,7 @@ const MainScreen = ({ navigation }) => {
   const bottomTabs = useMemo(
     () => [
       { id: 'diary', label: 'Diary', icon: '📘', screen: 'BloodSugar' },
-      { id: 'recipes', label: 'Recipes', icon: '👩‍🍳', screen: 'HealthyRecipes' },
+      { id: 'dietplanner', label: 'Diet Planı', icon: '📋', screen: 'DietPlanner' },
       { id: 'fasting', label: 'Fasting', icon: '⏱️', screen: 'DietPlan' },
       { id: 'profile', label: 'Profile', icon: '👤', screen: 'Profile' },
       { id: 'pro', label: 'Pro', icon: '🚀', screen: null },
@@ -347,8 +347,9 @@ const MainScreen = ({ navigation }) => {
     { id: 5, label: 'Activities', icon: '🏃', color: '#34d399', screen: 'Activities' },
     { id: 6, label: 'Libre', icon: '📊', color: '#16a34a', screen: 'LibreStats' },
     { id: 7, label: 'Profile', icon: '👤', color: '#6366f1', screen: 'Profile' },
-    { id: 8, label: 'Planner', icon: '📅', color: '#2dd4bf', screen: 'GlucoseCalendar' },
-    { id: 9, label: 'Emergency', icon: '🚑', color: '#ef4444', screen: 'Emergency' },
+    { id: 8, label: 'Diyet Plani', icon: '📋', color: '#0ea5e9', screen: 'DietPlanner' },
+    { id: 9, label: 'Idrar Analizi', icon: '🧪', color: '#a21caf', screen: 'UrineAnalysis' },
+    { id: 10, label: 'Emergency', icon: '🚑', color: '#ef4444', screen: 'Emergency' },
   ];
 
   return (

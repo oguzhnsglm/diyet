@@ -3,7 +3,18 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import SplashScreen from './screens/SplashScreen';
 import MainScreen from './screens/MainScreen';
+import HomeScreen from './screens/HomeScreen';
+import AddMealScreen from './screens/AddMealScreen';
+import RecommendationsScreen from './screens/RecommendationsScreen';
+import LoginScreen from './screens/LoginScreen';
+import RegisterScreen from './screens/RegisterScreen';
+import OnboardingScreen from './screens/OnboardingScreen';
+import LevelSelectScreen from './screens/LevelSelectScreen';
+import LevelDetailScreen from './screens/LevelDetailScreen';
+import PracticeScreen from './screens/PracticeScreen';
+import ResultScreen from './screens/ResultScreen';
 import SimpleDietPlanScreen from './screens/SimpleDietPlanScreen';
+import DietPlannerScreen from './screens/DietPlannerScreen';
 import HealthyRecipesScreen from './screens/HealthyRecipesScreen';
 import IngredientSearchScreen from './screens/IngredientSearchScreen';
 import ExerciseLibraryScreen from './screens/ExerciseLibraryScreen';
@@ -17,6 +28,10 @@ import { supabase } from './lib/supabase';
 import WaterTrackerScreen from './screens/WaterTrackerScreen';
 import ActivitiesScreen from './screens/ActivitiesScreen';
 import LibreStatsScreen from './screens/LibreStatsScreen';
+import UrineAnalysisScreen from './screens/UrineAnalysisScreen';
+import MainMenuScreen from './screens/MainMenuScreen';
+import AnaSayfaScreen from './screens/AnaSayfaScreen';
+import BasicMainMenuScreen from './screens/BasicMainMenuScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -58,10 +73,80 @@ export default function App() {
           component={MainScreen} 
           options={{ headerShown: false }} 
         />
+        <Stack.Screen
+          name="MainMenu"
+          component={MainMenuScreen}
+          options={{ title: 'Menü', headerStyle: { backgroundColor: '#4CAF50' }, headerTintColor: '#FFFFFF' }}
+        />
+        <Stack.Screen
+          name="AnaSayfa"
+          component={AnaSayfaScreen}
+          options={{ title: 'Ana Sayfa', headerStyle: { backgroundColor: '#4CAF50' }, headerTintColor: '#FFFFFF' }}
+        />
+        <Stack.Screen
+          name="BasicMainMenu"
+          component={BasicMainMenuScreen}
+          options={{ title: 'Hızlı Menü', headerStyle: { backgroundColor: '#4CAF50' }, headerTintColor: '#FFFFFF' }}
+        />
+        <Stack.Screen
+          name="Home"
+          component={HomeScreen}
+          options={{ title: 'Günlük Özet', headerStyle: { backgroundColor: '#4CAF50' }, headerTintColor: '#FFFFFF' }}
+        />
+        <Stack.Screen
+          name="AddMeal"
+          component={AddMealScreen}
+          options={{ title: 'Öğün Ekle', headerStyle: { backgroundColor: '#4CAF50' }, headerTintColor: '#FFFFFF' }}
+        />
+        <Stack.Screen
+          name="Recommendations"
+          component={RecommendationsScreen}
+          options={{ title: 'Akıllı Öneriler', headerStyle: { backgroundColor: '#4CAF50' }, headerTintColor: '#FFFFFF' }}
+        />
+        <Stack.Screen
+          name="Login"
+          component={LoginScreen}
+          options={{ title: 'Giriş Yap', headerStyle: { backgroundColor: '#4CAF50' }, headerTintColor: '#FFFFFF' }}
+        />
+        <Stack.Screen
+          name="Register"
+          component={RegisterScreen}
+          options={{ title: 'Kayıt Ol', headerStyle: { backgroundColor: '#4CAF50' }, headerTintColor: '#FFFFFF' }}
+        />
+        <Stack.Screen
+          name="Onboarding"
+          component={OnboardingScreen}
+          options={{ title: 'Profil Oluştur', headerStyle: { backgroundColor: '#4CAF50' }, headerTintColor: '#FFFFFF' }}
+        />
+        <Stack.Screen
+          name="Levels"
+          component={LevelSelectScreen}
+          options={{ title: 'Seviye Seç', headerStyle: { backgroundColor: '#4CAF50' }, headerTintColor: '#FFFFFF' }}
+        />
+        <Stack.Screen
+          name="LevelDetail"
+          component={LevelDetailScreen}
+          options={{ title: 'Seviye Detayı', headerStyle: { backgroundColor: '#4CAF50' }, headerTintColor: '#FFFFFF' }}
+        />
+        <Stack.Screen
+          name="Practice"
+          component={PracticeScreen}
+          options={{ title: 'Pratik', headerStyle: { backgroundColor: '#4CAF50' }, headerTintColor: '#FFFFFF' }}
+        />
+        <Stack.Screen
+          name="Result"
+          component={ResultScreen}
+          options={{ title: 'Sonuçlar', headerStyle: { backgroundColor: '#4CAF50' }, headerTintColor: '#FFFFFF' }}
+        />
         <Stack.Screen 
           name="DietPlan" 
           component={SimpleDietPlanScreen} 
-          options={{ title: 'Diyet Planı Oluştur' }} 
+          options={{ title: 'Fasting Alani' }} 
+        />
+        <Stack.Screen
+          name="DietPlanner"
+          component={DietPlannerScreen}
+          options={{ title: 'Yeni Diyet Plani' }}
         />
         <Stack.Screen 
           name="HealthyRecipes" 
@@ -145,6 +230,15 @@ export default function App() {
           options={{
             title: 'Libre Sensör',
             headerStyle: { backgroundColor: '#16a34a' },
+            headerTintColor: '#FFFFFF',
+          }}
+        />
+        <Stack.Screen
+          name="UrineAnalysis"
+          component={UrineAnalysisScreen}
+          options={{
+            title: 'İdrar Analizi',
+            headerStyle: { backgroundColor: '#a21caf' },
             headerTintColor: '#FFFFFF',
           }}
         />

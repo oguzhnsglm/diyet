@@ -1,25 +1,127 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { SafeAreaView, ScrollView, Text, View, Pressable, TextInput, Alert, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const PLAN_KEY = '@diyetPlan';
 
+const MEAL_SLOTS = [
+  { id: 'breakfast', label: 'Kahvaltı', window: '07:00 - 09:00', ratio: 0.25 },
+  { id: 'snack_morning', label: 'Sabah Ara Öğünü', window: '10:30', ratio: 0.1 },
+  { id: 'lunch', label: 'Öğle', window: '12:00 - 13:30', ratio: 0.25 },
+  { id: 'snack_afternoon', label: 'İkindi Ara Öğünü', window: '15:30', ratio: 0.15 },
+  { id: 'dinner', label: 'Akşam', window: '18:30 - 20:30', ratio: 0.2 },
+  { id: 'snack_evening', label: 'Akşam Sonrası', window: '21:30', ratio: 0.05 },
+];
+
+const FOOD_LIBRARY = [
+  { id: 'oat08', name: 'Yulaf lapası (1 porsiyon)', calories: 220 },
+  { id: 'egg02', name: 'Haşlanmış yumurta', calories: 78 },
+  { id: 'avocado', name: 'Avokado dilimi', calories: 60 },
+  { id: 'almond10', name: '10 adet çiğ badem', calories: 70 },
+  { id: 'apple', name: 'Elma', calories: 95 },
+  { id: 'salad', name: 'Zeytinyağlı salata', calories: 120 },
+  { id: 'kinoa', name: 'Kinoa tabak', calories: 210 },
+  { id: 'chicken', name: 'Izgara tavuk (150g)', calories: 240 },
+  { id: 'soup', name: 'Mercimek çorbası', calories: 150 },
+  { id: 'yogurt', name: 'Yoğurt + chia', calories: 110 },
+  { id: 'darkchoco', name: 'Bitter çikolata (20g)', calories: 120 },
+  { id: 'nutsmix', name: 'Küçük kuru yemiş', calories: 140 },
+  { id: 'protein', name: 'Protein shake', calories: 180 },
+  { id: 'fruitbowl', name: '3 meyveli kase', calories: 160 },
+];
+
+const GOAL_OPTIONS = [
+  { value: 'kilo-ver', label: 'Kilo vermek' },
+  { value: 'kilo-koru', label: 'Kilonu korumak' },
+  { value: 'kilo-al', label: 'Kilo almak' },
+  { value: 'kas-kazan', label: 'Kas kazanmak' },
+  { value: 'tip1', label: 'Tip 1 diyabet' },
+  { value: 'tip2', label: 'Tip 2 diyabet' },
+];
+
+const ensureEntryShape = (entries = {}) => {
+  const normalized = {};
+  MEAL_SLOTS.forEach((slot) => {
+    normalized[slot.id] = Array.isArray(entries[slot.id]) ? [...entries[slot.id]] : [];
+  });
+  return normalized;
+};
+
+const buildPlanStructure = (kalori, amacValue, existingEntries = {}) => {
+  const meals = MEAL_SLOTS.map((slot) => ({
+    id: slot.id,
+    label: slot.label,
+    window: slot.window,
+    hedefKalori: Math.round(kalori * slot.ratio),
+  }));
+  return {
+    hedefKalori: kalori,
+    amac: amacValue,
+    meals,
+    entries: ensureEntryShape(existingEntries),
+  };
+};
+
+const getMotivationMessage = (total, target, amacValue) => {
+  if (!target) return 'Plan oluşturduğunda seni motive eden cümle burada olacak.';
+  const diff = total - target;
+  const amacText = {
+    'kilo-ver': 'defisite sadık kalmak',
+    'kilo-koru': 'dengeyi korumak',
+    'kilo-al': 'fazla kalori toplamak',
+    'kas-kazan': 'kas liflerini beslemek',
+    tip1: 'hipo riskini azaltmak',
+    tip2: 'insülin direncini kırmak',
+  }[amacValue] || 'hedefine yaklaşmak';
+
+  if (Math.abs(diff) <= 80) {
+    return `Harika gidiyorsun! Günlük hedefine çok yakınsın, ${amacText} için aynı ritimde devam.`;
+  }
+  if (diff < -80) {
+    return 'Biraz daha enerji ekleyebilirsin, protein ağırlıklı küçük bir ara öğün seni dengeler.';
+  }
+  return 'Kalori çizgisini aştın ama sorun değil; yarın hafif bir yürüyüşle tabloyu dengeleyebilirsin.';
+};
+
 const DietPlannerScreen = () => {
   const [plan, setPlan] = useState(null);
+  const [mealEntries, setMealEntries] = useState(ensureEntryShape());
   const [showForm, setShowForm] = useState(false);
   const [hedefKalori, setHedefKalori] = useState('');
   const [amac, setAmac] = useState('kilo-ver');
+  const [activeMeal, setActiveMeal] = useState(MEAL_SLOTS[0].id);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     loadPlan();
   }, []);
 
+  const persistPlan = async (nextPlan) => {
+    try {
+      await AsyncStorage.setItem(PLAN_KEY, JSON.stringify(nextPlan));
+      setPlan(nextPlan);
+      setMealEntries(nextPlan.entries);
+    } catch (error) {
+      console.error('Plan kaydedilemedi:', error);
+    }
+  };
+
   const loadPlan = async () => {
     try {
       const savedData = await AsyncStorage.getItem(PLAN_KEY);
       if (savedData) {
-        setPlan(JSON.parse(savedData));
+        const parsed = JSON.parse(savedData);
+        if (parsed?.meals) {
+          setPlan(parsed);
+          setMealEntries(ensureEntryShape(parsed.entries));
+          return;
+        }
+        if (parsed?.hedefKalori) {
+          const migratedPlan = buildPlanStructure(parsed.hedefKalori, parsed.amac || 'kilo-ver');
+          await persistPlan(migratedPlan);
+        }
       }
     } catch (error) {
       console.error('Plan yüklenemedi:', error);
@@ -33,23 +135,10 @@ const DietPlannerScreen = () => {
       return;
     }
 
-    const kahvalti = Math.round(kalori * 0.3);
-    const ogle = Math.round(kalori * 0.35);
-    const aksam = kalori - kahvalti - ogle;
-
-    const yeniPlan = {
-      hedefKalori: kalori,
-      amac,
-      ogunler: [
-        { ad: 'Kahvaltı', kalori: kahvalti },
-        { ad: 'Öğle', kalori: ogle },
-        { ad: 'Akşam', kalori: aksam },
-      ],
-    };
+    const yeniPlan = buildPlanStructure(kalori, amac);
 
     try {
-      await AsyncStorage.setItem(PLAN_KEY, JSON.stringify(yeniPlan));
-      setPlan(yeniPlan);
+      await persistPlan(yeniPlan);
       setShowForm(false);
       setHedefKalori('');
     } catch (error) {
@@ -70,6 +159,7 @@ const DietPlannerScreen = () => {
             try {
               await AsyncStorage.removeItem(PLAN_KEY);
               setPlan(null);
+              setMealEntries(ensureEntryShape());
               setHedefKalori('');
             } catch (error) {
               Alert.alert('Hata', 'Plan silinemedi');
@@ -80,11 +170,57 @@ const DietPlannerScreen = () => {
     );
   };
 
+  const calculateMealTotal = (mealId) => {
+    return (mealEntries[mealId] || []).reduce((sum, food) => sum + (food.calories || 0), 0);
+  };
+
+  const dailyTotal = useMemo(() => {
+    return Object.keys(mealEntries).reduce((sum, key) => sum + calculateMealTotal(key), 0);
+  }, [mealEntries]);
+
+  const filteredFoods = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return FOOD_LIBRARY;
+    return FOOD_LIBRARY.filter(food => food.name.toLowerCase().includes(query));
+  }, [searchQuery]);
+
+  const motivationMessage = useMemo(() => {
+    return getMotivationMessage(dailyTotal, plan?.hedefKalori || 0, plan?.amac);
+  }, [dailyTotal, plan?.hedefKalori, plan?.amac]);
+
+  const handleAddFood = async (food) => {
+    if (!plan) return;
+    const updatedEntries = {
+      ...mealEntries,
+      [activeMeal]: [
+        ...(mealEntries[activeMeal] || []),
+        { ...food, entryId: `${food.id}-${Date.now()}` },
+      ],
+    };
+    const nextPlan = { ...plan, entries: updatedEntries };
+    await persistPlan(nextPlan);
+    setPickerOpen(false);
+    setSearchQuery('');
+  };
+
+  const handleRemoveFood = async (mealId, entryId) => {
+    if (!plan) return;
+    const updatedEntries = {
+      ...mealEntries,
+      [mealId]: (mealEntries[mealId] || []).filter(item => item.entryId !== entryId),
+    };
+    const nextPlan = { ...plan, entries: updatedEntries };
+    await persistPlan(nextPlan);
+  };
+
   const getAmacText = (amacValue) => {
     switch (amacValue) {
       case 'kilo-ver': return 'Kilo Verme';
       case 'kilo-koru': return 'Kilo Koruma';
       case 'kilo-al': return 'Kilo Alma';
+      case 'kas-kazan': return 'Kas Kazanma';
+      case 'tip1': return 'Tip 1 Diyabet';
+      case 'tip2': return 'Tip 2 Diyabet';
       default: return 'Bilinmiyor';
     }
   };
@@ -135,11 +271,7 @@ const DietPlannerScreen = () => {
                 <View style={styles.formRow}>
                   <Text style={styles.label}>Amacın</Text>
                   <View style={styles.radioGroup}>
-                    {[
-                      { value: 'kilo-ver', label: 'Kilo vermek' },
-                      { value: 'kilo-koru', label: 'Kilonu korumak' },
-                      { value: 'kilo-al', label: 'Kilo almak' },
-                    ].map((option) => (
+                    {GOAL_OPTIONS.map((option) => (
                       <Pressable
                         key={option.value}
                         style={[styles.radioOption, amac === option.value && styles.radioOptionActive]}
@@ -157,7 +289,7 @@ const DietPlannerScreen = () => {
                   <Text style={styles.label}>Öğün sayısı</Text>
                   <TextInput
                     style={[styles.input, styles.inputDisabled]}
-                    value="3"
+                    value="6"
                     editable={false}
                   />
                 </View>
@@ -199,14 +331,83 @@ const DietPlannerScreen = () => {
                 <Text style={styles.badgeText}>{getAmacText(plan.amac)}</Text>
               </View>
             </View>
+            <View style={styles.mealGrid}>
+              {plan.meals.map((meal) => {
+                const items = mealEntries[meal.id] || [];
+                const consumed = calculateMealTotal(meal.id);
+                const remaining = Math.max(0, meal.hedefKalori - consumed);
+                const isActive = activeMeal === meal.id;
+                return (
+                  <View key={meal.id} style={styles.mealCard}>
+                    <View style={styles.mealHeader}>
+                      <View>
+                        <Text style={styles.mealName}>{meal.label}</Text>
+                        <Text style={styles.mealWindow}>{meal.window}</Text>
+                      </View>
+                      <View style={styles.mealCalBox}>
+                        <Text style={styles.mealCal}>{consumed} / {meal.hedefKalori} kcal</Text>
+                        <Text style={styles.mealHint}>{remaining === 0 ? 'Tamamlandı' : `${remaining} kcal kaldı`}</Text>
+                      </View>
+                    </View>
 
-            <View style={styles.mealList}>
-              {plan.ogunler.map((ogun, idx) => (
-                <View key={idx} style={styles.mealItem}>
-                  <Text style={styles.mealName}>{ogun.ad}</Text>
-                  <Text style={styles.mealCal}>{ogun.kalori} kcal</Text>
+                    {items.length ? (
+                      <View style={styles.foodList}>
+                        {items.map(item => (
+                          <View key={item.entryId} style={styles.foodRow}>
+                            <View>
+                              <Text style={styles.foodName}>{item.name}</Text>
+                              <Text style={styles.foodCal}>{item.calories} kcal</Text>
+                            </View>
+                            <Pressable
+                              style={styles.removePill}
+                              onPress={() => handleRemoveFood(meal.id, item.entryId)}
+                            >
+                              <Text style={styles.removePillText}>x</Text>
+                            </Pressable>
+                          </View>
+                        ))}
+                      </View>
+                    ) : (
+                      <Text style={styles.foodEmptyText}>Henüz yemek eklenmedi.</Text>
+                    )}
+
+                    <Pressable
+                      style={[styles.mealAddButton, isActive && styles.mealAddButtonActive]}
+                      onPress={() => {
+                        setActiveMeal(meal.id);
+                        setPickerOpen(true);
+                      }}
+                    >
+                      <Text style={[styles.mealAddText, isActive && styles.mealAddTextActive]}>Bu öğüne ekle</Text>
+                    </Pressable>
+                  </View>
+                );
+              })}
+            </View>
+
+            <View style={styles.tableContainer}>
+              <View style={[styles.tableRow, styles.tableHeaderRow]}>
+                <Text style={[styles.tableCell, styles.tableHeadText]}>Öğün</Text>
+                <Text style={[styles.tableCell, styles.tableHeadText]}>Hedef</Text>
+                <Text style={[styles.tableCell, styles.tableHeadText]}>Alınan</Text>
+              </View>
+              {plan.meals.map(meal => (
+                <View key={meal.id} style={styles.tableRow}>
+                  <Text style={styles.tableCell}>{meal.label}</Text>
+                  <Text style={styles.tableCell}>{meal.hedefKalori} kcal</Text>
+                  <Text style={styles.tableCell}>{calculateMealTotal(meal.id)} kcal</Text>
                 </View>
               ))}
+              <View style={[styles.tableRow, styles.tableFooterRow]}>
+                <Text style={[styles.tableCell, styles.tableHeadText]}>Toplam</Text>
+                <Text style={[styles.tableCell, styles.tableHeadText]}>{plan.hedefKalori} kcal</Text>
+                <Text style={[styles.tableCell, styles.tableHeadText]}>{dailyTotal} kcal</Text>
+              </View>
+            </View>
+
+            <View style={styles.motivationCard}>
+              <Text style={styles.motivationLabel}>Motivasyon</Text>
+              <Text style={styles.motivationText}>{motivationMessage}</Text>
             </View>
 
             <Pressable style={styles.dangerButton} onPress={deletePlan}>
@@ -214,6 +415,61 @@ const DietPlannerScreen = () => {
             </Pressable>
           </View>
         </ScrollView>
+
+        <Pressable style={styles.fab} onPress={() => setPickerOpen(true)}>
+          <Text style={styles.fabIcon}>＋</Text>
+        </Pressable>
+
+        {pickerOpen && plan ? (
+          <View style={styles.pickerOverlay}>
+            <View style={styles.pickerCard}>
+              <View style={styles.pickerHeader}>
+                <Text style={styles.pickerTitle}>Yemek seç ve ekle</Text>
+                <Pressable onPress={() => setPickerOpen(false)}>
+                  <Text style={styles.closeText}>Kapat</Text>
+                </Pressable>
+              </View>
+
+              <View style={styles.mealChipRow}>
+                {MEAL_SLOTS.map(slot => (
+                  <Pressable
+                    key={slot.id}
+                    style={[styles.mealChip, activeMeal === slot.id && styles.mealChipActive]}
+                    onPress={() => setActiveMeal(slot.id)}
+                  >
+                    <Text style={[styles.mealChipText, activeMeal === slot.id && styles.mealChipTextActive]}>
+                      {slot.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Yemek ara (örn: tavuk, çorba)"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+
+              <ScrollView style={styles.foodPickerList}>
+                {filteredFoods.map(food => (
+                  <View key={food.id} style={styles.foodPickerRow}>
+                    <View>
+                      <Text style={styles.foodPickerName}>{food.name}</Text>
+                      <Text style={styles.foodPickerCal}>{food.calories} kcal</Text>
+                    </View>
+                    <Pressable style={styles.foodAddButton} onPress={() => handleAddFood(food)}>
+                      <Text style={styles.foodAddText}>Ekle</Text>
+                    </Pressable>
+                  </View>
+                ))}
+                {!filteredFoods.length && (
+                  <Text style={styles.noFoodText}>Aramana uygun yemek bulunamadı.</Text>
+                )}
+              </ScrollView>
+            </View>
+          </View>
+        ) : null}
       </LinearGradient>
     </SafeAreaView>
   );
@@ -384,24 +640,266 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
   },
-  mealList: {
-    gap: 0,
+  mealGrid: {
+    marginTop: 12,
+    gap: 16,
   },
-  mealItem: {
+  mealCard: {
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 14,
+    padding: 16,
+    backgroundColor: '#f8fafc',
+  },
+  mealHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    alignItems: 'flex-start',
+    marginBottom: 10,
   },
   mealName: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#334155',
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  mealWindow: {
+    fontSize: 12,
+    color: '#475569',
+    marginTop: 2,
+  },
+  mealCalBox: {
+    alignItems: 'flex-end',
   },
   mealCal: {
     fontSize: 14,
+    fontWeight: '600',
+    color: '#16a34a',
+  },
+  mealHint: {
+    fontSize: 12,
     color: '#64748b',
+  },
+  foodList: {
+    gap: 8,
+    marginBottom: 10,
+  },
+  foodRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  foodName: {
+    fontSize: 14,
+    color: '#1e293b',
+    fontWeight: '600',
+  },
+  foodCal: {
+    fontSize: 12,
+    color: '#475569',
+  },
+  removePill: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#fee2e2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removePillText: {
+    color: '#b91c1c',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  foodEmptyText: {
+    fontSize: 12,
+    color: '#94a3b8',
+    marginBottom: 10,
+  },
+  mealAddButton: {
+    borderWidth: 1,
+    borderColor: '#cbd5f5',
+    borderRadius: 999,
+    paddingVertical: 8,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  mealAddButtonActive: {
+    backgroundColor: '#0f172a',
+    borderColor: '#0f172a',
+  },
+  mealAddText: {
+    color: '#0f172a',
+    fontWeight: '600',
+  },
+  mealAddTextActive: {
+    color: '#fff',
+  },
+  tableContainer: {
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  tableRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+    backgroundColor: '#fff',
+  },
+  tableHeaderRow: {
+    backgroundColor: '#e0f2fe',
+  },
+  tableFooterRow: {
+    backgroundColor: '#ecfdf3',
+  },
+  tableCell: {
+    fontSize: 13,
+    color: '#1e293b',
+    flex: 1,
+    fontWeight: '500',
+  },
+  tableHeadText: {
+    fontWeight: '700',
+  },
+  motivationCard: {
+    marginTop: 16,
+    backgroundColor: '#0f172a',
+    borderRadius: 16,
+    padding: 16,
+  },
+  motivationLabel: {
+    color: '#a5b4fc',
+    fontSize: 12,
+    marginBottom: 6,
+    fontWeight: '600',
+  },
+  motivationText: {
+    color: '#fff',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  fab: {
+    position: 'absolute',
+    right: 24,
+    bottom: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#0f172a',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+  fabIcon: {
+    fontSize: 30,
+    color: '#fff',
+    marginTop: -2,
+  },
+  pickerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    padding: 16,
+    justifyContent: 'flex-end',
+  },
+  pickerCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 18,
+    maxHeight: '80%',
+  },
+  pickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  pickerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  closeText: {
+    color: '#ef4444',
+    fontWeight: '700',
+  },
+  mealChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  mealChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  mealChipActive: {
+    backgroundColor: '#0f172a',
+    borderColor: '#0f172a',
+  },
+  mealChipText: {
+    color: '#0f172a',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  mealChipTextActive: {
+    color: '#fff',
+  },
+  searchInput: {
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 12,
+    padding: 10,
+    fontSize: 14,
+    marginBottom: 12,
+  },
+  foodPickerList: {
+    maxHeight: 300,
+  },
+  foodPickerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  foodPickerName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0f172a',
+  },
+  foodPickerCal: {
+    fontSize: 12,
+    color: '#475569',
+  },
+  foodAddButton: {
+    backgroundColor: '#0f172a',
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+  },
+  foodAddText: {
+    color: '#fff',
+    fontWeight: '700',
+  },
+  noFoodText: {
+    textAlign: 'center',
+    paddingVertical: 20,
+    color: '#94a3b8',
   },
 });
 
