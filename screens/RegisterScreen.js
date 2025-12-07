@@ -16,21 +16,29 @@ export default function RegisterScreen() {
 
   return (
     <LinearGradient colors={['#f6f0ff', '#eae3ff']} style={styles.gradient}>
+      {/* Medical Disclaimer Banner */}
+      <View style={styles.disclaimerBanner}>
+        <Text style={styles.disclaimerIcon}>⚠️</Text>
+        <Text style={styles.disclaimerText}>
+          Bu uygulama profesyonel tıbbi tavsiye değildir. Doktorunuza danışın.
+        </Text>
+      </View>
+
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.select({ ios: 'padding', android: undefined })}
       >
         <View style={styles.card}>
-          <Text style={styles.title}>Yeni bir maceraya katil!</Text>
+          <Text style={styles.title}>Sağlık Asistanına Hoş Geldin!</Text>
           <Text style={styles.subtitle}>
-            Kayit ol, kelime listeni kesfet ve her gun telaffuzunu gelistir.
+            Kan şekerini takip et, sağlıklı yaşa
           </Text>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Ad Soyad</Text>
             <TextInput
               style={styles.input}
-              placeholder="Ornek Ogrenci"
+              placeholder="Adınız Soyadınız"
               placeholderTextColor="#9a86c7"
             />
           </View>
@@ -43,25 +51,25 @@ export default function RegisterScreen() {
             />
           </View>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Sifre</Text>
+            <Text style={styles.label}>Şifre</Text>
             <TextInput
               style={styles.input}
-              placeholder="Guclu bir sifre"
+              placeholder="Güçlü bir şifre"
               placeholderTextColor="#9a86c7"
               secureTextEntry
             />
           </View>
 
           <Pressable style={styles.primaryButton}>
-            <Text style={styles.primaryButtonLabel}>Kayit Ol</Text>
+            <Text style={styles.primaryButtonLabel}>Kayıt Ol</Text>
           </Pressable>
           <Pressable onPress={() => navigation.navigate('Login')}>
-            <Text style={styles.link}>Hesabin var mi? Giris yap</Text>
+            <Text style={styles.link}>Hesabın var mı? Giriş yap</Text>
           </Pressable>
         </View>
 
         <Pressable onPress={() => navigation.navigate('Home')} style={styles.backLinkWrapper}>
-          <Text style={styles.backLink}>Ana sayfaya don</Text>
+          <Text style={styles.backLink}>Ana sayfaya dön</Text>
         </Pressable>
       </KeyboardAvoidingView>
     </LinearGradient>
@@ -72,11 +80,42 @@ const styles = StyleSheet.create({
   gradient: {
     flex: 1,
   },
+  disclaimerBanner: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FEE2E2',
+    borderBottomWidth: 2,
+    borderBottomColor: '#DC2626',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    zIndex: 1000,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  disclaimerIcon: {
+    fontSize: 20,
+  },
+  disclaimerText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#991B1B',
+    lineHeight: 18,
+  },
   container: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
+    paddingTop: 60,
   },
   card: {
     width: '100%',

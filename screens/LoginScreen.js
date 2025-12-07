@@ -16,14 +16,22 @@ export default function LoginScreen() {
 
   return (
     <LinearGradient colors={['#f7f2ff', '#ebe2ff']} style={styles.gradient}>
+      {/* Medical Disclaimer Banner */}
+      <View style={styles.disclaimerBanner}>
+        <Text style={styles.disclaimerIcon}>⚠️</Text>
+        <Text style={styles.disclaimerText}>
+          Bu uygulama profesyonel tıbbi tavsiye değildir. Doktorunuza danışın.
+        </Text>
+      </View>
+
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.select({ ios: 'padding', android: undefined })}
       >
         <View style={styles.card}>
-          <Text style={styles.title}>Tekrar hos geldin!</Text>
+          <Text style={styles.title}>Tekrar Hoş Geldin!</Text>
           <Text style={styles.subtitle}>
-            Hesabina giris yap ve telaffuz yolculuguna devam et.
+            Hesabına giriş yap
           </Text>
 
           <View style={styles.inputGroup}>
@@ -35,7 +43,7 @@ export default function LoginScreen() {
             />
           </View>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Sifre</Text>
+            <Text style={styles.label}>Şifre</Text>
             <TextInput
               style={styles.input}
               placeholder="********"
@@ -45,15 +53,15 @@ export default function LoginScreen() {
           </View>
 
           <Pressable style={styles.primaryButton}>
-            <Text style={styles.primaryButtonLabel}>Giris Yap</Text>
+            <Text style={styles.primaryButtonLabel}>Giriş Yap</Text>
           </Pressable>
           <Pressable onPress={() => navigation.navigate('Register')}>
-            <Text style={styles.link}>Henuz hesabin yok mu? Kayit ol</Text>
+            <Text style={styles.link}>Henüz hesabın yok mu? Kayıt ol</Text>
           </Pressable>
         </View>
 
         <Pressable onPress={() => navigation.navigate('Home')} style={styles.backLinkWrapper}>
-          <Text style={styles.backLink}>Ana sayfaya don</Text>
+          <Text style={styles.backLink}>Ana sayfaya dön</Text>
         </Pressable>
       </KeyboardAvoidingView>
     </LinearGradient>
@@ -64,11 +72,42 @@ const styles = StyleSheet.create({
   gradient: {
     flex: 1,
   },
+  disclaimerBanner: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FEE2E2',
+    borderBottomWidth: 2,
+    borderBottomColor: '#DC2626',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    zIndex: 1000,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  disclaimerIcon: {
+    fontSize: 20,
+  },
+  disclaimerText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#991B1B',
+    lineHeight: 18,
+  },
   container: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
+    paddingTop: 60,
   },
   card: {
     width: '100%',
