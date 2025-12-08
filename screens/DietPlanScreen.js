@@ -106,14 +106,37 @@ const DietPlan = ({ navigation }) => {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-      <Text style={styles.title}>Diyet Planı Oluştur</Text>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+      <Text style={styles.title}>Nutrition</Text>
+
+      {/* Stats Özeti */}
+      <View style={styles.statsRow}>
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>{Math.round(totals.calories)}</Text>
+          <Text style={styles.statLabel}>Calories</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>{totals.protein.toFixed(1)}g</Text>
+          <Text style={styles.statLabel}>Protein</Text>
+        </View>
+      </View>
+
+      <View style={styles.statsRow}>
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>{totals.fat.toFixed(1)}g</Text>
+          <Text style={styles.statLabel}>Fat</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>{totals.sugar.toFixed(1)}g</Text>
+          <Text style={styles.statLabel}>Sugar</Text>
+        </View>
+      </View>
 
       {/* 🔍 Arama kutusu */}
-      <Text style={styles.sectionTitle}>Önerilen yiyecekler</Text>
+      <Text style={styles.sectionTitle}>Quick Add</Text>
       <TextInput
         style={styles.searchInput}
-        placeholder="Örn: tavuk, yumurta, makarna..."
+        placeholder="Search food..."
         value={search}
         onChangeText={setSearch}
       />
@@ -135,67 +158,68 @@ const DietPlan = ({ navigation }) => {
       ))}
 
       {/* ✏️ Serbest besin ekleme alanı */}
-      <Text style={styles.sectionTitle}>Kendi yediğini ekle</Text>
+      <Text style={styles.sectionTitle}>Custom Entry</Text>
 
-      <Text style={styles.label}>Ne yedin?</Text>
+      <Text style={styles.label}>Food Name</Text>
       <TextInput
         style={styles.input}
-        placeholder="Örn: Bir tabak makarna"
+        placeholder="e.g. Pasta"
         value={name}
         onChangeText={setName}
       />
 
-      <Text style={styles.label}>Miktar (gram)</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Örn: 230"
-        keyboardType="numeric"
-        value={grams}
-        onChangeText={setGrams}
-      />
+      <View style={styles.inputRow}>
+        <View style={styles.inputCol}>
+          <Text style={styles.label}>Calories</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="350"
+            keyboardType="numeric"
+            value={calories}
+            onChangeText={setCalories}
+          />
+        </View>
+        <View style={styles.inputCol}>
+          <Text style={styles.label}>Protein (g)</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="12"
+            keyboardType="numeric"
+            value={protein}
+            onChangeText={setProtein}
+          />
+        </View>
+      </View>
 
-      <Text style={styles.label}>Kalori (kcal)</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Örn: 350"
-        keyboardType="numeric"
-        value={calories}
-        onChangeText={setCalories}
-      />
-
-      <Text style={styles.label}>Protein (g)</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Örn: 12"
-        keyboardType="numeric"
-        value={protein}
-        onChangeText={setProtein}
-      />
-
-      <Text style={styles.label}>Yağ (g)</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Örn: 8"
-        keyboardType="numeric"
-        value={fat}
-        onChangeText={setFat}
-      />
-
-      <Text style={styles.label}>Şeker (g)</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Örn: 3"
-        keyboardType="numeric"
-        value={sugar}
-        onChangeText={setSugar}
-      />
+      <View style={styles.inputRow}>
+        <View style={styles.inputCol}>
+          <Text style={styles.label}>Fat (g)</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="8"
+            keyboardType="numeric"
+            value={fat}
+            onChangeText={setFat}
+          />
+        </View>
+        <View style={styles.inputCol}>
+          <Text style={styles.label}>Sugar (g)</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="3"
+            keyboardType="numeric"
+            value={sugar}
+            onChangeText={setSugar}
+          />
+        </View>
+      </View>
 
       <Pressable style={styles.addButton} onPress={handleAddCustom}>
-        <Text style={styles.addButtonText}>Bu öğünü listeye ekle</Text>
+        <Text style={styles.addButtonText}>Add to List</Text>
       </Pressable>
 
       {/* Eklenen öğünlerin özeti */}
-      <Text style={styles.sectionTitle}>Bugünkü öğünlerin</Text>
+      <Text style={styles.sectionTitle}>Today's Meals</Text>
       {items.map(item => (
         <View key={item.id} style={styles.summaryItem}>
           <Text style={styles.summaryName}>
@@ -226,64 +250,136 @@ const DietPlan = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
-    padding: 16,
+    backgroundColor: '#FAFBFC',
+    padding: 24,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    color: '#2C3E50',
+    fontSize: 34,
+    fontWeight: '800',
+    marginBottom: 32,
+    color: '#0F172A',
+    letterSpacing: -0.5,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 16,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#1E293B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+  statValue: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 6,
+    letterSpacing: -0.5,
+  },
+  statLabel: {
+    fontSize: 13,
+    color: '#94A3B8',
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 16,
-    marginBottom: 8,
-    color: '#2C3E50',
+    fontSize: 24,
+    fontWeight: '800',
+    marginTop: 24,
+    marginBottom: 16,
+    color: '#0F172A',
+    letterSpacing: -0.3,
   },
   searchInput: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    marginBottom: 8,
+    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    marginBottom: 16,
+    fontSize: 16,
+    color: '#0F172A',
+    shadowColor: '#1E293B',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
   },
   foodItem: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 6,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 1,
   },
   foodName: {
     fontWeight: '600',
     color: '#111827',
+    fontSize: 15,
   },
   foodInfo: {
     fontSize: 12,
     color: '#6B7280',
+    marginTop: 4,
   },
   addText: {
-    color: '#16A34A',
+    color: '#3B82F6',
     fontWeight: '600',
+    fontSize: 24,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  inputCol: {
+    flex: 1,
   },
   label: {
     fontSize: 13,
     marginTop: 6,
-    marginBottom: 2,
-    color: '#4B5563',
+    marginBottom: 6,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   input: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     borderWidth: 1,
+    borderColor: '#E5E7EB',
+    fontSize: 15,
+  },
+  addButton: {
+    backgroundColor: '#3B82F6',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 15,
+    marginBottom: 10,
+  },
+  addButtonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
     borderColor: '#D1D5DB',
   },
   addButton: {

@@ -3,6 +3,7 @@ import { SafeAreaView, ScrollView, Text, View, StyleSheet, Pressable } from 'rea
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../styles';
 import { addQuickAction, getQuickActions, removeQuickAction } from '../logic/quickActions';
+import { getTodayHealthSummary } from '../logic/healthSync';
 
 const QUICK_CATEGORY = 'exercise';
 
@@ -101,10 +102,19 @@ const LIMITS = {
 const ExerciseLibraryScreen = ({ route }) => {
   const [quickExercises, setQuickExercises] = useState([]);
   const [highlightedId, setHighlightedId] = useState(null);
+  const [healthSummary, setHealthSummary] = useState(null);
 
   const stats = route?.params?.stats || { calories: 0, sugar: 0 };
   const extraCalories = Math.max(0, stats.calories - LIMITS.calories);
   const extraSugar = Math.max(0, stats.sugar - LIMITS.sugar);
+
+  useEffect(() => {
+    const loadHealthData = async () => {
+      const summary = await getTodayHealthSummary();
+      setHealthSummary(summary);
+    };
+    loadHealthData();
+  }, []);
 
   const exerciseAdvice = useMemo(() => {
     const notes = [];
@@ -192,121 +202,88 @@ const ExerciseLibraryScreen = ({ route }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient colors={[colors.bgGradientStart, colors.bgGradientEnd]} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.content}>
-          <View style={styles.statusCard}>
-            <Text style={styles.statusTitle}>Bugünkü Durumun</Text>
-            <View style={styles.statusRow}>
-              <View style={styles.statusBox}>
-                <Text style={styles.statusLabel}>Alınan Kalori</Text>
-                <Text style={styles.statusValue}>
-                  {stats.calories ? `${stats.calories.toFixed?.(0) || stats.calories} kcal` : '-'}
-                </Text>
-                <Text style={styles.statusSub}>
-                  Hedef: {LIMITS.calories} kcal{' '}
-                  {extraCalories > 0 ? `(≈ ${extraCalories.toFixed(0)} fazla)` : ''}
-                </Text>
-              </View>
-              <View style={styles.statusBox}>
-                <Text style={styles.statusLabel}>Alınan Şeker</Text>
-                <Text style={styles.statusValue}>
-                  {stats.sugar ? `${stats.sugar.toFixed?.(0) || stats.sugar} g` : '-'}
-                </Text>
-                <Text style={styles.statusSub}>
-                  Limit: {LIMITS.sugar} g{' '}
-                  {extraSugar > 0 ? `(≈ ${extraSugar.toFixed(0)} g fazla)` : ''}
-                </Text>
-              </View>
-            </View>
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <Text style={styles.title}>Exercise</Text>
 
-            <View style={styles.statusAdvice}>
-              {exerciseAdvice.map((line, idx) => (
-                <Text key={idx} style={styles.statusAdviceText}>
-                  • {line}
-                </Text>
-              ))}
-            </View>
-          </View>
-
-          <View style={styles.hero}>
-            <Text style={styles.heroTitle}>Egzersiz Öneri Merkezi</Text>
-            <Text style={styles.heroSubtitle}>
-              Kalori ve şeker hedefini desteklemek için hazır egzersiz listelerinden ilham al.
-              Yaklaşık değerler, tempo ve kiloya göre değişebilir.
+        {/* Health Stats Grid */}
+        <View style={styles.statsGrid}>
+          <View style={styles.statBox}>
+            <Text style={styles.statBoxIcon}>🔥</Text>
+            <Text style={styles.statBoxValue}>
+              {healthSummary?.totalCalories || 0}
             </Text>
+            <Text style={styles.statBoxLabel}>Burned</Text>
           </View>
+          <View style={styles.statBox}>
+            <Text style={styles.statBoxIcon}>👣</Text>
+            <Text style={styles.statBoxValue}>
+              {healthSummary?.totalSteps || 0}
+            </Text>
+            <Text style={styles.statBoxLabel}>Steps</Text>
+          </View>
+        </View>
 
-          {quickExercises.length > 0 && (
-            <View style={styles.quickSection}>
-              <Text style={styles.quickTitle}>Sık Kullandıkların</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
-                {quickExercises.map((item) => (
-                  <Pressable
-                    key={item.id}
-                    style={[styles.quickChip, highlightedId === item.id && styles.quickChipActive]}
-                    onPress={() => setHighlightedId(item.id)}
-                  >
-                    <Text style={styles.quickChipTitle}>{item.name}</Text>
-                    <Text style={styles.quickChipSub}>{item.duration}</Text>
-                    <Text style={styles.quickChipCal}>{item.calories}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-              {highlightedExercise && (
-                <View style={styles.quickDetail}>
-                  <Text style={styles.quickDetailLabel}>Not:</Text>
-                  <Text style={styles.quickDetailText}>{highlightedExercise.tip}</Text>
+        <View style={styles.statsGrid}>
+          <View style={styles.statBox}>
+            <Text style={styles.statBoxIcon}>💓</Text>
+            <Text style={styles.statBoxValue}>
+              {healthSummary?.avgHeartRate || '--'}
+            </Text>
+            <Text style={styles.statBoxLabel}>Avg HR</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Text style={styles.statBoxIcon}>🍽️</Text>
+            <Text style={styles.statBoxValue}>
+              {stats.calories || 0}
+            </Text>
+            <Text style={styles.statBoxLabel}>Eaten</Text>
+          </View>
+        </View>
+
+        {/* Quick Actions */}
+        {sortedExercises.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>⭐ Favorites</Text>
+            {sortedExercises.slice(0, 3).map(ex => (
+              <View key={ex.id} style={styles.exerciseCard}>
+                <View>
+                  <Text style={styles.exerciseName}>{ex.name}</Text>
+                  <Text style={styles.exerciseInfo}>{ex.duration} · {ex.calories}</Text>
                 </View>
-              )}
-            </View>
-          )}
+              </View>
+            ))}
+          </>
+        )}
 
-          {exerciseSections.map((section) => (
-            <View key={section.title} style={styles.sectionCard}>
-              <View style={styles.sectionHeader}>
-                <View style={[styles.sectionAccent, { backgroundColor: section.accent }]} />
+        {/* All Exercises */}
+        {exerciseSections.map((section) => (
+          <View key={section.title}>
+            <Text style={styles.sectionTitle}>{section.title}</Text>
+            {section.items.map((item) => (
+              <Pressable
+                key={item.id}
+                style={styles.exerciseCard}
+                onPress={() => {
+                  if (quickExerciseIds.includes(item.id)) {
+                    removeQuickAction(QUICK_CATEGORY, item.id);
+                  } else {
+                    addQuickAction(QUICK_CATEGORY, item);
+                  }
+                  loadQuickActions();
+                }}
+              >
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.sectionTitle}>{section.title}</Text>
-                  <Text style={styles.sectionSubtitle}>{section.subtitle}</Text>
+                  <Text style={styles.exerciseName}>{item.name}</Text>
+                  <Text style={styles.exerciseInfo}>{item.duration} · {item.calories}</Text>
                 </View>
-              </View>
-
-              {section.items.map((item) => {
-                const isFavorite = quickExercises.some((fav) => fav.id === item.id);
-                return (
-                  <View key={item.name} style={styles.exerciseRow}>
-                    <View style={styles.exerciseHeader}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.exerciseName}>{item.name}</Text>
-                        <Text style={styles.exerciseDuration}>{item.duration}</Text>
-                      </View>
-                      <Pressable
-                        style={[styles.favoriteToggle, isFavorite && styles.favoriteToggleActive]}
-                        onPress={() => handleToggleFavorite(item, section.title, isFavorite)}
-                        accessibilityRole="button"
-                        accessibilityLabel={isFavorite ? 'Favoriden kaldır' : 'Sık kullanıma ekle'}
-                      >
-                        <Text style={[styles.favoriteStar, isFavorite && styles.favoriteStarActive]}>
-                          {isFavorite ? '★' : '☆'}
-                        </Text>
-                      </Pressable>
-                    </View>
-                    <Text style={styles.exerciseCalories}>{item.calories}</Text>
-                    <Text style={styles.exerciseTip}>{item.tip}</Text>
-                  </View>
-                );
-              })}
-            </View>
-          ))}
-
-          <View style={styles.noteBox}>
-            <Text style={styles.noteText}>
-              ⚠️ Sağlık durumunla ilgili soru işaretlerin varsa mutlaka doktoruna danış. Egzersiz
-              öncesinde ısınmayı, sonrasında esnemeyi unutma.
-            </Text>
+                <Text style={styles.starIcon}>
+                  {quickExerciseIds.includes(item.id) ? '⭐' : '☆'}
+                </Text>
+              </Pressable>
+            ))}
           </View>
+        ))}
         </ScrollView>
-      </LinearGradient>
     </SafeAreaView>
   );
 };
@@ -314,11 +291,89 @@ const ExerciseLibraryScreen = ({ route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.bg,
+    backgroundColor: '#FAFBFC',
   },
   content: {
-    padding: 20,
+    padding: 24,
     paddingBottom: 32,
+  },
+  title: {
+    fontSize: 34,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 32,
+    letterSpacing: -0.5,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 16,
+  },
+  statBox: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#1E293B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+  statBoxIcon: {
+    fontSize: 36,
+    marginBottom: 14,
+  },
+  statBoxValue: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 6,
+    letterSpacing: -0.5,
+  },
+  statBoxLabel: {
+    fontSize: 13,
+    color: '#94A3B8',
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  sectionTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginTop: 24,
+    marginBottom: 16,
+    letterSpacing: -0.3,
+  },
+  exerciseCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 20,
+    marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    shadowColor: '#1E293B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  exerciseName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 6,
+    letterSpacing: -0.2,
+  },
+  exerciseInfo: {
+    fontSize: 14,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  starIcon: {
+    fontSize: 26,
   },
   statusCard: {
     backgroundColor: colors.card,
@@ -373,6 +428,17 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 2,
     lineHeight: 18,
+  },
+  healthInfoBar: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  healthInfoText: {
+    fontSize: 13,
+    color: '#111827',
+    fontWeight: '500',
   },
   hero: {
     backgroundColor: colors.card,

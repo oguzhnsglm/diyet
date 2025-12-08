@@ -127,69 +127,63 @@ export default function BloodSugarScreen() {
   }, [measurements, stats.a1c]);
 
   const riskLabel =
-    stats.gde < 30 ? 'Stabil' : stats.gde < 60 ? 'Orta dalgalanma' : 'Yüksek dalgalanma';
+    stats.gde < 30 ? 'Düşük' : stats.gde < 60 ? 'Orta' : 'Yüksek';
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 24 }}>
-      <Text style={styles.title}>Kan Şekeri Takibi</Text>
-      <Text style={styles.subtitle}>
-        Gün boyunca yaptığın ölçümleri kaydet, tahmini A1C ve dalgalanma durumunu gör.
-      </Text>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+      <Text style={styles.title}>Kan Şekeri</Text>
 
-      {/* ÖZET KARTLAR */}
-      <View style={styles.summaryRow}>
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryLabel}>Ortalama</Text>
-          <Text style={styles.summaryValue}>
-            {stats.avg ? `${stats.avg.toFixed(0)} mg/dL` : '-'}
+      {/* ANA DAIRE GRAFIK - Ortalama */}
+      <View style={styles.mainCircleCard}>
+        <View style={styles.bigCircle}>
+          <Text style={styles.bigCircleValue}>
+            {stats.avg ? stats.avg.toFixed(0) : '--'}
           </Text>
-        </View>
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryLabel}>Açlık Ort.</Text>
-          <Text style={styles.summaryValue}>
-            {stats.fasting ? `${stats.fasting.toFixed(0)} mg/dL` : '-'}
-          </Text>
-        </View>
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryLabel}>Tokluk Ort.</Text>
-          <Text style={styles.summaryValue}>
-            {stats.postMeal ? `${stats.postMeal.toFixed(0)} mg/dL` : '-'}
-          </Text>
+          <Text style={styles.bigCircleUnit}>mg/dL</Text>
+          <Text style={styles.bigCircleLabel}>Ortalama</Text>
         </View>
       </View>
 
-      {/* A1C & GDE */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Tahmini A1C Aralığı</Text>
-        <Text style={styles.a1cValue}>
-          {stats.a1c.min}% – {stats.a1c.max}%
-        </Text>
-        <Text style={styles.cardText}>
-          Bu değer son ölçümlerin ortalamasına göre matematiksel bir tahmindir, gerçek
-          laboratuvar sonucunun yerini tutmaz.
-        </Text>
+      {/* STATS GRID */}
+      <View style={styles.statsGrid}>
+        <View style={styles.statBox}>
+          <Text style={styles.statBoxValue}>
+            {stats.fasting ? stats.fasting.toFixed(0) : '-'}
+          </Text>
+          <Text style={styles.statBoxLabel}>Açlık</Text>
+        </View>
+        <View style={styles.statBox}>
+          <Text style={styles.statBoxValue}>
+            {stats.postMeal ? stats.postMeal.toFixed(0) : '-'}
+          </Text>
+          <Text style={styles.statBoxLabel}>Tokluk</Text>
+        </View>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>GDE Skoru (Glikoz Dalgalanma Endeksi)</Text>
-        <Text style={styles.gdeValue}>{stats.gde}</Text>
-        <Text style={styles.gdeLabel}>{riskLabel}</Text>
-        <Text style={styles.cardText}>
-          GDE, kan şekerinin gün içindeki oynaklığını gösterir. Daha düşük skorlar genelde
-          daha stabil seyri ifade eder.
-        </Text>
+      {/* A1C & GDE GRID */}
+      <View style={styles.statsGrid}>
+        <View style={styles.statBox}>
+          <Text style={styles.statBoxValue}>
+            {stats.a1c.min}–{stats.a1c.max}%
+          </Text>
+          <Text style={styles.statBoxLabel}>Tahmini A1C</Text>
+        </View>
+        <View style={styles.statBox}>
+          <Text style={styles.statBoxValue}>{stats.gde}</Text>
+          <Text style={styles.statBoxLabel}>GDE · {riskLabel}</Text>
+        </View>
       </View>
 
       {/* ÖLÇÜM EKLEME ALANI */}
-      <Text style={styles.sectionTitle}>Yeni Ölçüm Ekle</Text>
+      <Text style={styles.sectionTitle}>Ölçüm Ekle</Text>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Açlık (mg/dL)</Text>
+        <Text style={styles.inputLabel}>🌅 Açlık</Text>
         <View style={styles.inputRow}>
           <TextInput
             style={styles.input}
             keyboardType="numeric"
-            placeholder="Örn: 95"
+            placeholder="95"
             value={fastingInput}
             onChangeText={setFastingInput}
           />
@@ -197,18 +191,18 @@ export default function BloodSugarScreen() {
             style={styles.addButton}
             onPress={() => addMeasurement('fasting', fastingInput)}
           >
-            <Text style={styles.addButtonText}>Ekle</Text>
+            <Text style={styles.addButtonText}>+</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Tokluk (mg/dL)</Text>
+        <Text style={styles.inputLabel}>🍽️ Tokluk</Text>
         <View style={styles.inputRow}>
           <TextInput
             style={styles.input}
             keyboardType="numeric"
-            placeholder="Örn: 145"
+            placeholder="145"
             value={postMealInput}
             onChangeText={setPostMealInput}
           />
@@ -216,26 +210,26 @@ export default function BloodSugarScreen() {
             style={styles.addButton}
             onPress={() => addMeasurement('postMeal', postMealInput)}
           >
-            <Text style={styles.addButtonText}>Ekle</Text>
+            <Text style={styles.addButtonText}>+</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Diğer Ölçüm</Text>
+        <Text style={styles.inputLabel}>📊 Diğer</Text>
         <View style={styles.inputRow}>
           <TextInput
             style={styles.input}
             keyboardType="numeric"
-            placeholder="Örn: 180"
+            placeholder="180"
             value={otherInput}
             onChangeText={setOtherInput}
           />
           <TouchableOpacity
-            style={styles.addButtonSecondary}
+            style={styles.addButton}
             onPress={() => addMeasurement('other', otherInput)}
           >
-            <Text style={styles.addButtonTextSecondary}>Ekle</Text>
+            <Text style={styles.addButtonText}>+</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -243,25 +237,18 @@ export default function BloodSugarScreen() {
       {/* LİSTE */}
       <Text style={styles.sectionTitle}>Son Ölçümler</Text>
       {measurements.length === 0 ? (
-        <Text style={styles.emptyText}>Henüz ölçüm eklenmedi.</Text>
+        <Text style={styles.emptyText}>Henüz ölçüm yok</Text>
       ) : (
         measurements.map(m => (
           <View key={m.id} style={styles.measureItem}>
             <View>
               <Text style={styles.measureValue}>{m.value} mg/dL</Text>
               <Text style={styles.measureType}>
-                {m.type === 'fasting'
-                  ? 'Açlık'
-                  : m.type === 'postMeal'
-                  ? 'Tokluk'
-                  : 'Diğer'}
+                {m.type === 'fasting' ? '🌅 Açlık' : m.type === 'postMeal' ? '🍽️ Tokluk' : '📊 Diğer'}
               </Text>
             </View>
             <Text style={styles.measureTime}>
-              {m.time.toLocaleTimeString('tr-TR', {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
+              {m.time.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
             </Text>
           </View>
         ))
@@ -273,95 +260,185 @@ export default function BloodSugarScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0F7FF',
-    padding: 16,
+    backgroundColor: '#FAFBFC',
+    padding: 24,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#0059C1',
-    marginBottom: 4,
+    fontSize: 34,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 32,
+    letterSpacing: -0.5,
   },
-  subtitle: {
-    fontSize: 13,
-    color: '#4b5563',
+  mainCircleCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    padding: 40,
+    marginBottom: 24,
+    shadowColor: '#1E293B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
+    alignItems: 'center',
+  },
+  bigCircle: {
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 16,
+    borderColor: '#3B82F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  bigCircleValue: {
+    fontSize: 68,
+    fontWeight: '800',
+    color: '#0F172A',
+    lineHeight: 68,
+    letterSpacing: -1.5,
+  },
+  bigCircleUnit: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#64748B',
+    marginTop: 4,
+    letterSpacing: 0.3,
+  },
+  bigCircleLabel: {
+    fontSize: 14,
+    color: '#94A3B8',
+    marginTop: 10,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    gap: 16,
     marginBottom: 16,
   },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  summaryCard: {
+  statBox: {
     flex: 1,
-    marginHorizontal: 4,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#1E293B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
     elevation: 2,
   },
-  summaryLabel: { fontSize: 11, color: '#6b7280' },
-  summaryValue: { fontSize: 16, fontWeight: '700', color: '#111827' },
-  card: {
-    backgroundColor: 'white',
-    borderRadius: 14,
-    padding: 14,
-    elevation: 3,
-    marginBottom: 12,
+  statBoxValue: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 8,
+    letterSpacing: -0.5,
   },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: '#1f2933', marginBottom: 6 },
-  a1cValue: { fontSize: 26, fontWeight: '900', color: '#1E88E5' },
-  gdeValue: { fontSize: 30, fontWeight: '900', color: '#DC2626' },
-  gdeLabel: { fontSize: 14, fontWeight: '700', color: '#374151', marginTop: 2 },
-  cardText: { fontSize: 12, color: '#4b5563', marginTop: 6 },
+  statBoxLabel: {
+    fontSize: 13,
+    color: '#94A3B8',
+    fontWeight: '600',
+    textAlign: 'center',
+    letterSpacing: 0.2,
+  },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
-    marginTop: 10,
-    marginBottom: 6,
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginTop: 24,
+    marginBottom: 16,
+    letterSpacing: -0.3,
   },
-  inputGroup: { marginBottom: 8 },
-  inputLabel: { fontSize: 13, color: '#374151', marginBottom: 4 },
-  inputRow: { flexDirection: 'row', alignItems: 'center' },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 10,
+    letterSpacing: -0.1,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
   input: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    backgroundColor: '#f9fafb',
-    fontSize: 13,
-  },
-  addButton: {
-    marginLeft: 8,
-    backgroundColor: '#0ea5e9',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-  },
-  addButtonText: { color: 'white', fontWeight: '700', fontSize: 13 },
-  addButtonSecondary: {
-    marginLeft: 8,
-    backgroundColor: '#6b7280',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-  },
-  addButtonTextSecondary: { color: 'white', fontWeight: '700', fontSize: 13 },
-  emptyText: { fontSize: 13, color: '#6b7280', marginBottom: 16 },
-  measureItem: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 10,
-    marginBottom: 8,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 18,
+    fontSize: 17,
+    color: '#0F172A',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    shadowColor: '#1E293B',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
     elevation: 1,
   },
-  measureValue: { fontSize: 16, fontWeight: '700', color: '#111827' },
-  measureType: { fontSize: 11, color: '#6b7280' },
-  measureTime: { fontSize: 11, color: '#6b7280', alignSelf: 'center' },
+  addButton: {
+    backgroundColor: '#3B82F6',
+    borderRadius: 16,
+    width: 56,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  addButtonText: {
+    color: '#FFFFFF',
+    fontSize: 28,
+    fontWeight: '700',
+  },
+  emptyText: {
+    fontSize: 15,
+    color: '#94A3B8',
+    textAlign: 'center',
+    marginTop: 24,
+    fontWeight: '500',
+  },
+  measureItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 20,
+    marginBottom: 12,
+    shadowColor: '#1E293B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  measureValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 4,
+    letterSpacing: -0.3,
+  },
+  measureType: {
+    fontSize: 14,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  measureTime: {
+    fontSize: 15,
+    color: '#94A3B8',
+    fontWeight: '600',
+  },
 });
