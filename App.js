@@ -9,6 +9,12 @@ import AddMealScreen from './screens/AddMealScreen';
 import RecommendationsScreen from './screens/RecommendationsScreen';
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
+import AuthHomeScreen from './screens/Auth/AuthHomeScreen';
+import LoginScreenNew from './screens/Auth/LoginScreenNew';
+import RegisterStepOneScreen from './screens/Auth/RegisterStepOneScreen';
+import RegisterStepTwoScreen from './screens/Auth/RegisterStepTwoScreen';
+import QuestionWizardScreen from './screens/Auth/QuestionWizardScreen';
+import CreateAccountScreen from './screens/Auth/CreateAccountScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import LevelSelectScreen from './screens/LevelSelectScreen';
 import LevelDetailScreen from './screens/LevelDetailScreen';
@@ -50,6 +56,27 @@ LogBox.ignoreLogs([
 ]);
 
 const Stack = createNativeStackNavigator();
+const AuthStack = createNativeStackNavigator();
+
+function AuthStackNavigator() {
+  return (
+    <AuthStack.Navigator
+      initialRouteName="AuthHome"
+      screenOptions={{
+        headerShown: false,
+        animation: 'slide_from_right',
+        contentStyle: { backgroundColor: '#020617' },
+      }}
+    >
+      <AuthStack.Screen name="AuthHome" component={AuthHomeScreen} />
+      <AuthStack.Screen name="LoginScreen" component={LoginScreenNew} />
+      <AuthStack.Screen name="RegisterStepOne" component={RegisterStepOneScreen} />
+      <AuthStack.Screen name="RegisterStepTwo" component={RegisterStepTwoScreen} />
+      <AuthStack.Screen name="QuestionWizard" component={QuestionWizardScreen} />
+      <AuthStack.Screen name="CreateAccount" component={CreateAccountScreen} />
+    </AuthStack.Navigator>
+  );
+}
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -110,9 +137,14 @@ export default function App() {
     <DietProvider>
       <NavigationContainer>
         <Stack.Navigator
-          initialRouteName="Main"
+          initialRouteName="Auth"
           screenOptions={screenOptions}
         >
+        <Stack.Screen
+          name="Auth"
+          component={AuthStackNavigator}
+          options={{ headerShown: false }}
+        />
         <Stack.Screen 
           name="Main" 
           component={MainScreen}
