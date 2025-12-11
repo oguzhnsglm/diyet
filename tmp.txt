@@ -1,4 +1,4 @@
-ï»¿import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
@@ -63,48 +63,48 @@ const LATEST_GLUCOSE_STATS_KEY = 'latest_glucose_stats';
 const LATEST_NUTRITION_STATS_KEY = 'latest_nutrition_stats';
 const CALENDAR_STORAGE_KEY = '@motivation_calendar_days';
 
-const WEEKDAY_LABELS = ['Pzt', 'Sal', 'Ã‡ar', 'Per', 'Cum', 'Cmt', 'Paz'];
+const WEEKDAY_LABELS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
 const STATUS_SEQUENCE = [null, 'good', 'ok', 'bad'];
 const STATUS_META = {
-  default: { bg: '#f0f5ff', color: '#9ca3af', emoji: 'ğŸ™‚' },
-  good: { bg: '#e3f9e5', color: '#0ea5e9', emoji: 'ğŸ˜' },
-  ok: { bg: '#fff7d6', color: '#f59e0b', emoji: 'ğŸ™‚â€â†•ï¸' },
-  bad: { bg: '#ffe4e6', color: '#ef4444', emoji: 'ğŸ˜Ÿ' },
+  default: { bg: '#f0f5ff', color: '#9ca3af', emoji: '??' },
+  good: { bg: '#e3f9e5', color: '#0ea5e9', emoji: '??' },
+  ok: { bg: '#fff7d6', color: '#f59e0b', emoji: '???|?' },
+  bad: { bg: '#ffe4e6', color: '#ef4444', emoji: '??' },
 };
 
 const quickActions = [];
 
 const menuOptions = [
-  { id: 'HealthyRecipes', title: 'ğŸ½ï¸ SaÄŸlÄ±klÄ± Tarifler', color: '#ff9800' },
-  { id: 'DietPlanner', title: 'ğŸ“… Diyet PlanlayÄ±cÄ±', color: '#8b5cf6' },
-  { id: 'AddMeal', title: 'ğŸ“· FotoÄŸrafla Analiz', color: '#ec4899' },
-  { id: 'HealthSync', title: 'âŒš Saat BaÄŸlantÄ±sÄ±', color: '#06b6d4' },
-  { id: 'PersonalInsights', title: 'âœ¨ AkÄ±llÄ± Ã–neriler', color: '#a855f7' },
-  { id: 'StressSleep', title: 'ğŸŒ™ Uyku & Stres', color: '#6366f1' },
-  { id: 'DoctorReport', title: 'ğŸ©º Doktor Raporu', color: '#10b981' },
-  { id: 'GlucoseCalendar', title: 'ğŸ“† Glikoz Takvimi', color: '#1d4ed8' },
-  { id: 'UrineAnalysis', title: 'ğŸ§ª Ä°drar Analizi', color: '#0ea5e9' },
+  { id: 'HealthyRecipes', title: '??? Sağlıklı Tarifler', color: '#ff9800' },
+  { id: 'DietPlanner', title: '?? Diyet Planlayıcı', color: '#8b5cf6' },
+  { id: 'AddMeal', title: '?? Fotoğrafla Analiz', color: '#ec4899' },
+  { id: 'HealthSync', title: '? Saat Bağlantısı', color: '#06b6d4' },
+  { id: 'PersonalInsights', title: '? Akıllı Öneriler', color: '#a855f7' },
+  { id: 'StressSleep', title: '?? Uyku & Stres', color: '#6366f1' },
+  { id: 'DoctorReport', title: '?? Doktor Raporu', color: '#10b981' },
+  { id: 'GlucoseCalendar', title: '?? Glikoz Takvimi', color: '#1d4ed8' },
+  { id: 'UrineAnalysis', title: '?? İdrar Analizi', color: '#0ea5e9' },
 ];
 
 const navLinks = [
-  { id: 'BloodSugar', label: 'Åeker', target: 'BloodSugar' },
+  { id: 'BloodSugar', label: 'Şeker', target: 'BloodSugar' },
   { id: 'HealthyRecipes', label: 'Tarifler', target: 'HealthyRecipes' },
-  { id: 'DietPlan', label: 'OruÃ§', target: 'DietPlanner' },
+  { id: 'DietPlan', label: 'Oruç', target: 'DietPlanner' },
   { id: 'WaterTracker', label: 'Su', target: 'WaterTracker' },
   { id: 'Activities', label: 'Aktivite', target: 'HealthSync' },
   { id: 'Profile', label: 'Profil', target: 'Profile' },
 ];
 
 const dietOptions = [
-  { id: 'calorie', label: 'Calorie Counting', emoji: 'ğŸ”¥', color: '#ff8a4c' },
-  { id: 'lowcarb', label: 'Low-Carb', emoji: 'ğŸ¥‘', color: '#0ea5e9' },
-  { id: 'keto', label: 'Keto', emoji: 'ğŸ¥“', color: '#6366f1' },
-  { id: 'highprotein', label: 'High-Protein', emoji: 'ğŸ’ª', color: '#f472b6' },
-  { id: 'lowfat', label: 'Low-Fat', emoji: 'ğŸ¥›', color: '#fb7185' },
-  { id: 'med', label: 'Mediterranean', emoji: 'ğŸ‹', color: '#10b981' },
-  { id: 'veg', label: 'Vegetarian', emoji: 'ğŸ¥•', color: '#22c55e' },
-  { id: 'vegan', label: 'Vegan', emoji: 'ğŸ¥—', color: '#84cc16' },
-  { id: 'dash', label: 'DASH', emoji: 'ğŸ¥¥', color: '#0ea5e9' },
+  { id: 'calorie', label: 'Calorie Counting', emoji: '??', color: '#ff8a4c' },
+  { id: 'lowcarb', label: 'Low-Carb', emoji: '??', color: '#0ea5e9' },
+  { id: 'keto', label: 'Keto', emoji: '??', color: '#6366f1' },
+  { id: 'highprotein', label: 'High-Protein', emoji: '??', color: '#f472b6' },
+  { id: 'lowfat', label: 'Low-Fat', emoji: '??', color: '#fb7185' },
+  { id: 'med', label: 'Mediterranean', emoji: '??', color: '#10b981' },
+  { id: 'veg', label: 'Vegetarian', emoji: '??', color: '#22c55e' },
+  { id: 'vegan', label: 'Vegan', emoji: '??', color: '#84cc16' },
+  { id: 'dash', label: 'DASH', emoji: '??', color: '#0ea5e9' },
 ];
 
 const MEAL_LIBRARY = [
@@ -114,7 +114,7 @@ const MEAL_LIBRARY = [
   { id: 'omlet', name: 'Sebzeli Omlet', caloriesPerPortion: 230 },
   { id: 'pancake', name: 'Muzlu Pancake', caloriesPerPortion: 340 },
   { id: 'salad', name: 'Tavuklu Salata', caloriesPerPortion: 360 },
-  { id: 'soup', name: 'Mercimek Ã‡orbasÄ±', caloriesPerPortion: 180 },
+  { id: 'soup', name: 'Mercimek Çorbası', caloriesPerPortion: 180 },
 ];
 
 const formatDateKey = (date) => date.toISOString().split('T')[0];
@@ -330,13 +330,13 @@ const MainScreen = ({ navigation }) => {
   const headerBadges = useMemo(() => {
     const badges = [];
     if (goalProgress?.overallScore) {
-      badges.push({ id: 'score', icon: 'ğŸ†', label: `${goalProgress.overallScore}% baÅŸarÄ±` });
+      badges.push({ id: 'score', icon: '??', label: `${goalProgress.overallScore}% başarı` });
     }
     if (achievements?.streak) {
-      badges.push({ id: 'streak', icon: 'ğŸ”¥', label: `${achievements.streak} gÃ¼n seri` });
+      badges.push({ id: 'streak', icon: '??', label: `${achievements.streak} gün seri` });
     }
     if (personality?.name) {
-      badges.push({ id: 'persona', icon: 'ğŸ§ ', label: personality.name });
+      badges.push({ id: 'persona', icon: '??', label: personality.name });
     }
     return badges.slice(0, 3);
   }, [goalProgress, achievements, personality]);
@@ -345,16 +345,16 @@ const MainScreen = ({ navigation }) => {
     () => [
       {
         id: 'glucose',
-        icon: 'ğŸ©¸',
-        label: 'Åeker',
+        icon: '??',
+        label: 'Şeker',
         value: glucoseStats.lastValue ?? '-',
         unit: glucoseStats.lastValue ? 'mg/dL' : '',
-        hint: glucoseStats.time || 'Son Ã¶lÃ§Ã¼m yok',
+        hint: glucoseStats.time || 'Son ölçüm yok',
         color: '#ef4444',
       },
       {
         id: 'calories',
-        icon: 'ğŸ”¥',
+        icon: '??',
         label: 'Kalori',
         value: nutritionStats.calories || 0,
         unit: 'kkal',
@@ -363,20 +363,20 @@ const MainScreen = ({ navigation }) => {
       },
       {
         id: 'steps',
-        icon: 'ğŸ‘Ÿ',
-        label: 'AdÄ±m',
+        icon: '??',
+        label: 'Adım',
         value: goalProgress?.steps?.current || healthSummary?.totalSteps || 0,
         unit: '',
-        hint: goalProgress?.steps?.target ? `Hedef ${goalProgress.steps.target}` : 'GÃ¼ncel hedef yok',
+        hint: goalProgress?.steps?.target ? `Hedef ${goalProgress.steps.target}` : 'Güncel hedef yok',
         color: '#10b981',
       },
       {
         id: 'heart',
-        icon: 'â¤ï¸',
-        label: 'NabÄ±z',
+        icon: '??',
+        label: 'Nabız',
         value: healthSummary?.avgHeartRate || '-',
         unit: healthSummary?.avgHeartRate ? 'bpm' : '',
-        hint: goalProgress?.heartRate?.inRange ? 'Ä°deal aralÄ±kta' : 'Takip et',
+        hint: goalProgress?.heartRate?.inRange ? 'İdeal aralıkta' : 'Takip et',
         color: '#6366f1',
       },
     ],
@@ -406,7 +406,7 @@ const MainScreen = ({ navigation }) => {
     return MEAL_LIBRARY.filter((m) => m.name.toLowerCase().includes(q)).slice(0, 5);
   }, [mealQuery]);
 
-  // Sadece tÄ±klama ile seÃ§im; yazma sadece filtre iÃ§in.
+  // Sadece tıklama ile seçim; yazma sadece filtre için.
 
   const loggedCalories = useMemo(
     () => mealEntries.reduce((sum, entry) => sum + (entry.calories || 0), 0),
@@ -447,7 +447,7 @@ const MainScreen = ({ navigation }) => {
 
   const handleCompleteMeal = useCallback(() => {
     if (currentMealEntries.length === 0) {
-      Alert.alert('Ã–ÄŸÃ¼n boÅŸ', 'Bu Ã¶ÄŸÃ¼ne ekli yemek yok. LÃ¼tfen yemek ekleyin.');
+      Alert.alert('Öğün boş', 'Bu öğüne ekli yemek yok. Lütfen yemek ekleyin.');
       return;
     }
     setSelectedMeal(null);
@@ -457,31 +457,19 @@ const MainScreen = ({ navigation }) => {
     setCurrentMealNumber((prev) => prev + 1);
   }, [currentMealEntries.length]);
 
-  
   const handleEditMeal = useCallback(() => {
-    Alert.alert('???n d?zenleme', '???n d?zenleme ak??? hen?z eklenmedi.');
+    Alert.alert('Öğün düzenleme', 'Öğün düzenleme akışı henüz eklenmedi.');
   }, []);
 
   const handleCompleteDay = useCallback(() => {
-    const addedCalories = mealEntries.reduce((sum, entry) => sum + (entry.calories || 0), 0);
-    setNutritionStats((prev) => ({
-      ...prev,
-      calories: (prev?.calories || 0) + addedCalories,
-    }));
-    setMealEntries([]);
-    setSelectedMeal(null);
-    setPortion(1);
-    setMealQuery('');
-    setShowMealList(false);
-    setCurrentMealNumber(1);
-    Alert.alert('G?n tamamland?', 'Yemekler g?nl?k kalori takibine eklendi.');
-  }, [mealEntries]);
-
-  const handleEditDay = useCallback(() => {
-    Alert.alert('G?n? d?zenle', 'G?n d?zenleme ak??? hen?z eklenmedi.');
+    Alert.alert('Gün tamamlandı', 'Günü tamamlama akışı henüz eklenmedi.');
   }, []);
 
-return (
+  const handleEditDay = useCallback(() => {
+    Alert.alert('Günü düzenle', 'Gün düzenleme akışı henüz eklenmedi.');
+  }, []);
+
+  return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient
         colors={['#0ccb6a', '#0fbd7a']}
@@ -497,7 +485,7 @@ return (
         >
           <View style={styles.navBar}>
             <View style={styles.brand}>
-              <Text style={styles.brandIcon}>ğŸ</Text>
+              <Text style={styles.brandIcon}>??</Text>
               <Text style={styles.brandText}>MyNetDiary</Text>
             </View>
             <ScrollView
@@ -537,8 +525,8 @@ return (
 
           <View style={styles.summaryMealCard}>
             <TodaySummaryCard
-              eaten={(nutritionStats.calories || 0) + loggedCalories + selectedCalories}
-              remaining={Math.max(0, MACRO_GOALS.calories - ((nutritionStats.calories || 0) + loggedCalories + selectedCalories))}
+              eaten={nutritionStats.calories || 0}
+              remaining={calorieRemaining}
               burned={healthSummary?.totalCalories || 0}
               carbs={{ current: nutritionStats.carbs || 0, target: MACRO_GOALS.carbs }}
               protein={{ current: nutritionStats.protein || 0, target: MACRO_GOALS.protein }}
@@ -551,8 +539,8 @@ return (
             <View style={styles.mealSection}>
               <View style={styles.mealHeader}>
                 <View>
-                  <Text style={styles.mealTitle}>KahvaltÄ± / Ã–ÄŸÃ¼n {currentMealNumber}</Text>
-                  <Text style={styles.mealSubtitle}>YediÄŸin yemeÄŸi seÃ§ ve porsiyonunu gir.</Text>
+                  <Text style={styles.mealTitle}>Kahvaltı / Öğün {currentMealNumber}</Text>
+                  <Text style={styles.mealSubtitle}>Yediğin yemeği seç ve porsiyonunu gir.</Text>
                 </View>
                 <View style={styles.mealBadge}>
                   <Text style={styles.mealBadgeText}>Yeni</Text>
@@ -562,7 +550,7 @@ return (
               <View style={styles.mealContentRow}>
                 <View style={styles.mealLeft}>
                   <TextInput
-                    placeholder="Ã–rn: Avokadolu tost"
+                    placeholder="Örn: Avokadolu tost"
                     placeholderTextColor="#94a3b8"
                     value={mealQuery}
                     onChangeText={(text) => {
@@ -625,14 +613,14 @@ return (
                       {mealLogEntries.length > 0 && (
                         <View style={styles.mealLog}>
                           <View style={styles.mealLogHeader}>
-                            <Text style={styles.mealLogBold}>Tamamlanan Ã–ÄŸÃ¼nler</Text>
+                            <Text style={styles.mealLogBold}>Tamamlanan Öğünler</Text>
                             <Pressable style={styles.iconButton} onPress={handleEditMeal}>
                               <Text style={styles.iconButtonText}>??</Text>
                             </Pressable>
                           </View>
                           {mealLogEntries.map((entry) => (
                             <Text key={entry.id} style={styles.mealLogText}>
-                              <Text style={styles.mealLogBold}>Ã–ÄŸÃ¼n {entry.order}: </Text>
+                              <Text style={styles.mealLogBold}>Öğün {entry.order}: </Text>
                               {entry.name} ({entry.portion.toFixed(1)} porsiyon, {entry.calories} kkal)
                             </Text>
                           ))}
@@ -641,7 +629,7 @@ return (
                       <Text style={styles.mealSummaryHint}>
                         {selectedMeal
                           ? `${selectedMeal.name} (${portion.toFixed(1)} porsiyon) eklenecek.`
-                          : 'SeÃ§ili Ã¶ÄŸÃ¼n yok.'}
+                          : 'Seçili öğün yok.'}
                       </Text>
                     </View>
                   </View>
@@ -649,14 +637,14 @@ return (
                   <View style={styles.mealActions}>
                     {selectedMeal && (
                       <Pressable style={styles.primaryButton} onPress={handleAddMeal}>
-                        <Text style={styles.primaryButtonText}>Ã–ÄŸÃ¼ne Ekle</Text>
+                        <Text style={styles.primaryButtonText}>Öğüne Ekle</Text>
                       </Pressable>
                     )}
                     <Pressable style={styles.secondaryButton} onPress={handleCompleteMeal}>
-                      <Text style={styles.secondaryButtonText}>Ã–ÄŸÃ¼nÃ¼ Tamamla</Text>
+                      <Text style={styles.secondaryButtonText}>Öğünü Tamamla</Text>
                     </Pressable>
                     <Pressable style={styles.secondaryButton} onPress={handleCompleteDay}>
-                      <Text style={styles.secondaryButtonText}>GÃ¼nÃ¼ Tamamla</Text>
+                      <Text style={styles.secondaryButtonText}>Günü Tamamla</Text>
                     </Pressable>
                   </View>
                 </View>
@@ -671,11 +659,11 @@ return (
                 Be Healthy{"\n"}for Life!
               </Text>
               <Text style={styles.heroSubtitle}>
-                Kilo, diyet ve beslenme asistanÄ±n. BugÃ¼nÃ¼ birlikte planlayalÄ±m.
+                Kilo, diyet ve beslenme asistanın. Bugünü birlikte planlayalım.
               </Text>
               <View style={styles.ctaRow}>
                 <Pressable style={styles.ctaPrimary} onPress={() => handleNavigate('DietPlanner')}>
-                  <Text style={styles.ctaPrimaryText}>PlanÄ±ma BaÅŸla</Text>
+                  <Text style={styles.ctaPrimaryText}>Planıma Başla</Text>
                 </Pressable>
                 <Pressable style={styles.ctaGhost} onPress={() => handleNavigate('HealthyRecipes')}>
                   <Text style={styles.ctaGhostText}>Tariflere Bak</Text>
@@ -724,7 +712,7 @@ return (
                   </View>
                 ))}
                 <View style={styles.mockFooter}>
-                  <Text style={styles.mockHint}>Kendi ritmine uyan planÄ± seÃ§.</Text>
+                  <Text style={styles.mockHint}>Kendi ritmine uyan planı seç.</Text>
                 </View>
               </View>
         </View>
@@ -733,7 +721,7 @@ return (
           <View style={styles.heroCard}>
             <View style={styles.heroHeader}>
               <View>
-                <Text style={styles.heroTitleSmall}>BugÃ¼nÃ¼n Ã–zeti</Text>
+                <Text style={styles.heroTitleSmall}>Bugünün Özeti</Text>
                 <Text style={styles.heroSubtitleSmall}>
                   {goalProgress?.overallScore
                     ? `Genel skorun ${goalProgress.overallScore}%`
@@ -769,14 +757,14 @@ return (
 
           <View style={styles.weeklyCard}>
             <View style={styles.weeklyHeader}>
-              <Text style={styles.sectionTitle}>HaftalÄ±k Ã‡izelge</Text>
+              <Text style={styles.sectionTitle}>Haftalık Çizelge</Text>
               <View style={styles.weekControls}>
                 <Pressable style={styles.weekButton} onPress={() => shiftWeek(-1)}>
-                  <Text style={styles.weekButtonText}>â€¹</Text>
+                  <Text style={styles.weekButtonText}>‹</Text>
                 </Pressable>
                 <Text style={styles.weekRange}>{weekRangeLabel}</Text>
                 <Pressable style={styles.weekButton} onPress={() => shiftWeek(1)}>
-                  <Text style={styles.weekButtonText}>â€º</Text>
+                  <Text style={styles.weekButtonText}>›</Text>
                 </Pressable>
               </View>
             </View>
@@ -798,19 +786,19 @@ return (
                 );
               })}
             </View>
-            <Text style={styles.weekHint}>Emoji seÃ§imleri motivasyon gÃ¼nlÃ¼ÄŸÃ¼ne kaydedilir.</Text>
+            <Text style={styles.weekHint}>Emoji seçimleri motivasyon günlüğüne kaydedilir.</Text>
           </View>
 
           {goalProgress && (
             <View style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>BugÃ¼nkÃ¼ Hedefler</Text>
+                <Text style={styles.sectionTitle}>Bugünkü Hedefler</Text>
                 <Text style={styles.sectionSubtitle}>
-                  {goalProgress.totalAchieved}/{goalProgress.totalGoals} tamamlandÄ±
+                  {goalProgress.totalAchieved}/{goalProgress.totalGoals} tamamlandı
                 </Text>
               </View>
               <ProgressBar
-                label="AdÄ±m"
+                label="Adım"
                 value={goalProgress.steps.current}
                 max={goalProgress.steps.target}
                 color="#0ea5e9"
@@ -823,7 +811,7 @@ return (
                 unit=" kkal"
               />
               <ProgressBar
-                label="Glukoz AralÄ±k"
+                label="Glukoz Aralık"
                 value={goalProgress.glucose.inRangeCount}
                 max={goalProgress.glucose.totalCount || 1}
                 color="#f97316"
@@ -840,7 +828,7 @@ return (
               <Text style={styles.sectionTitle}>Bildirimler</Text>
             </View>
             {notifications.length === 0 && (
-              <Text style={styles.muted}>BugÃ¼n iÃ§in yeni bildirim yok. Ä°yi gidiyorsun!</Text>
+              <Text style={styles.muted}>Bugün için yeni bildirim yok. İyi gidiyorsun!</Text>
             )}
             {notifications.map((notif, index) => (
               <View
@@ -848,7 +836,7 @@ return (
                 style={[styles.notificationCard, styles[`notification${notif.type || 'info'}`]]}
               >
                 <Text style={styles.notificationTitle}>
-                  {notif.icon || 'ğŸ””'} {notif.title}
+                  {notif.icon || '??'} {notif.title}
                 </Text>
                 <Text style={styles.notificationMessage}>{notif.message}</Text>
               </View>
@@ -864,7 +852,7 @@ return (
               >
                 <Text style={styles.menuEmoji}>{option.title.split(' ')[0]}</Text>
                 <Text style={styles.menuTitle}>{option.title.replace(/^.*\s/, '')}</Text>
-                <Text style={styles.menuLink}>AÃ§ â€º</Text>
+                <Text style={styles.menuLink}>Aç ›</Text>
               </Pressable>
             ))}
           </View>
@@ -1789,3 +1777,4 @@ const styles = StyleSheet.create({
 });
 
 export default MainScreen;
+

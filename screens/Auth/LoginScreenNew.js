@@ -14,7 +14,7 @@ const STRINGS = {
   register: 'Kaydol',
 };
 
-export default function LoginScreenNew() {
+export default function LoginScreenNew({ onLogin }) {
   const navigation = useNavigation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,7 +24,9 @@ export default function LoginScreenNew() {
 
   const handleLogin = () => {
     if (!canSubmit) return;
-    // TODO: backend login entegrasyonu
+    if (onLogin) {
+      onLogin();
+    }
     navigation.replace('Main');
   };
 

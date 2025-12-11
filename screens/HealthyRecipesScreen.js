@@ -131,7 +131,7 @@ const RECIPES = [
 
 const QUICK_CATEGORY = 'recipes';
 
-const HealthyRecipesScreen = () => {
+const HealthyRecipesScreen = ({ navigation }) => {
   const [selectedCategory, setSelectedCategory] = useState('Tümü');
   const [expandedRecipe, setExpandedRecipe] = useState(null);
   const [glycemicExpanded, setGlycemicExpanded] = useState({});
@@ -175,9 +175,21 @@ const HealthyRecipesScreen = () => {
       <LinearGradient colors={['#FFF3E0', '#F5F7FA']} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.content}>
           
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>🥗 Sağlıklı Tarifler</Text>
-            <Text style={styles.headerSubtitle}>Düşük kalorili ve şekersiz lezzetler</Text>
+          <View style={styles.headerRow}>
+            <Pressable
+              style={styles.backButton}
+              onPress={() => {
+                if (navigation && navigation.canGoBack()) {
+                  navigation.goBack();
+                }
+              }}
+            >
+              <Text style={styles.backIcon}>‹</Text>
+            </Pressable>
+            <View style={styles.header}>
+              <Text style={styles.headerTitle}>🥗 Sağlıklı Tarifler</Text>
+              <Text style={styles.headerSubtitle}>Düşük kalorili ve şekersiz lezzetler</Text>
+            </View>
           </View>
 
           {quickRecipes.length > 0 && (
@@ -319,8 +331,33 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 32,
   },
-  header: {
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     marginBottom: 20,
+  },
+  backButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
+  },
+  backIcon: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2C3E50',
+  },
+  header: {
+    flex: 1,
   },
   headerTitle: {
     fontSize: 28,
