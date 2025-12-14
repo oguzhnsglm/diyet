@@ -1,6 +1,4 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -9,1782 +7,647 @@ import {
   Pressable,
   StyleSheet,
   RefreshControl,
-  TextInput,
+  Platform,
   Alert,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Circle } from 'react-native-svg';
-
-import MascotHeader from '../components/MascotHeader';
-import ActivitiesCard from '../components/ActivitiesCard';
+import Svg, { Circle, Path, G, Rect } from 'react-native-svg';
 import BottomNavBar from '../components/BottomNavBar';
-import MilestoneCard from '../components/MilestoneCard';
-import ProgressBar from '../components/ProgressBar';
-import TodaySummaryCard from '../components/TodaySummaryCard';
-import WaterTracker from '../components/WaterTracker';
-import {
-  analyzePersonality,
-  checkAndAwardBadges,
-  generateSmartNotification,
-  getTodayGoalProgress,
-} from '../logic/smartGoals';
-import { getTodayHealthSummary } from '../logic/healthSync';
 
-const DEFAULT_GLUCOSE_STATS = {
-  lastValue: null,
-  time: null,
-  a1cRange: { min: 5.5, max: 6.0 },
-};
-
-const DEFAULT_NUTRITION_STATS = {
-  carbs: 210,
-  protein: 110,
-  fat: 65,
-  calories: 2000,
-};
-
-const MACRO_GOALS = {
-  calories: 2000,
-  carbs: 210,
-  protein: 110,
-  fat: 65,
-};
-
-const DEFAULT_GOAL_PROGRESS = {
-  steps: { current: 0, target: 0 },
-  calories: { current: 0, target: 0 },
-  glucose: { inRangeCount: 0, totalCount: 1 },
-  totalAchieved: 0,
-  totalGoals: 0,
-  overallScore: 0,
-};
-
-const LATEST_GLUCOSE_STATS_KEY = 'latest_glucose_stats';
-const LATEST_NUTRITION_STATS_KEY = 'latest_nutrition_stats';
-const CALENDAR_STORAGE_KEY = '@motivation_calendar_days';
-
-const WEEKDAY_LABELS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
-const STATUS_SEQUENCE = [null, 'good', 'ok', 'bad'];
-const STATUS_META = {
-  default: { bg: '#f0f5ff', color: '#9ca3af', emoji: '🙂' },
-  good: { bg: '#e3f9e5', color: '#0ea5e9', emoji: '😎' },
-  ok: { bg: '#fff7d6', color: '#f59e0b', emoji: '🙂‍↕️' },
-  bad: { bg: '#ffe4e6', color: '#ef4444', emoji: '😟' },
-};
-
-const quickActions = [];
-
-const menuOptions = [
-  { id: 'HealthyRecipes', title: '🍽️ Sağlıklı Tarifler', color: '#ff9800' },
-  { id: 'DietPlanner', title: '📅 Diyet Planlayıcı', color: '#8b5cf6' },
-  { id: 'AddMeal', title: '📷 Fotoğrafla Analiz', color: '#ec4899' },
-  { id: 'HealthSync', title: '⌚ Saat Bağlantısı', color: '#06b6d4' },
-  { id: 'PersonalInsights', title: '✨ Akıllı Öneriler', color: '#a855f7' },
-  { id: 'StressSleep', title: '🌙 Uyku & Stres', color: '#6366f1' },
-  { id: 'DoctorReport', title: '🩺 Doktor Raporu', color: '#10b981' },
-  { id: 'GlucoseCalendar', title: '📆 Glikoz Takvimi', color: '#1d4ed8' },
-  { id: 'UrineAnalysis', title: '🧪 İdrar Analizi', color: '#0ea5e9' },
-];
-
-const navLinks = [
-  { id: 'BloodSugar', label: 'Şeker', target: 'BloodSugar' },
-  { id: 'HealthyRecipes', label: 'Tarifler', target: 'HealthyRecipes' },
-  { id: 'DietPlan', label: 'Oruç', target: 'DietPlanner' },
-  { id: 'WaterTracker', label: 'Su', target: 'WaterTracker' },
-  { id: 'Activities', label: 'Aktivite', target: 'HealthSync' },
-  { id: 'Profile', label: 'Profil', target: 'Profile' },
-];
-
-const dietOptions = [
-  { id: 'calorie', label: 'Calorie Counting', emoji: '🔥', color: '#ff8a4c' },
-  { id: 'lowcarb', label: 'Low-Carb', emoji: '🥑', color: '#0ea5e9' },
-  { id: 'keto', label: 'Keto', emoji: '🥓', color: '#6366f1' },
-  { id: 'highprotein', label: 'High-Protein', emoji: '💪', color: '#f472b6' },
-  { id: 'lowfat', label: 'Low-Fat', emoji: '🥛', color: '#fb7185' },
-  { id: 'med', label: 'Mediterranean', emoji: '🍋', color: '#10b981' },
-  { id: 'veg', label: 'Vegetarian', emoji: '🥕', color: '#22c55e' },
-  { id: 'vegan', label: 'Vegan', emoji: '🥗', color: '#84cc16' },
-  { id: 'dash', label: 'DASH', emoji: '🥥', color: '#0ea5e9' },
-];
-
-const MEAL_LIBRARY = [
-  { id: 'avocado_toast', name: 'Avokadolu Tost', caloriesPerPortion: 320 },
-  { id: 'oat_bowl', name: 'Yulaf & Meyve Kasesi', caloriesPerPortion: 280 },
-  { id: 'menemen', name: 'Menemen', caloriesPerPortion: 250 },
-  { id: 'omlet', name: 'Sebzeli Omlet', caloriesPerPortion: 230 },
-  { id: 'pancake', name: 'Muzlu Pancake', caloriesPerPortion: 340 },
-  { id: 'salad', name: 'Tavuklu Salata', caloriesPerPortion: 360 },
-  { id: 'soup', name: 'Mercimek Çorbası', caloriesPerPortion: 180 },
-];
-
-const formatDateKey = (date) => date.toISOString().split('T')[0];
-
-const getWeekStart = (baseDate) => {
-  const date = new Date(baseDate);
-  const day = date.getDay();
-  const diff = (day + 6) % 7; // Monday start
-  date.setHours(0, 0, 0, 0);
-  date.setDate(date.getDate() - diff);
-  return date;
-};
-
-const buildWeekDays = (startDate) => {
-  const days = [];
-  for (let i = 0; i < 7; i += 1) {
-    const d = new Date(startDate);
-    d.setDate(d.getDate() + i);
-    days.push(d);
+// Apple Health entegrasyonu
+let appleHealthSync = null;
+if (Platform.OS === 'ios') {
+  try {
+    appleHealthSync = require('../logic/appleHealthSync').default;
+  } catch (error) {
+    console.log('Apple Health paketi bulunamadı');
   }
-  return days;
-};
-
-const cycleStatus = (current) => {
-  const index = STATUS_SEQUENCE.indexOf(current);
-  const nextIndex = (index + 1) % STATUS_SEQUENCE.length;
-  return STATUS_SEQUENCE[nextIndex];
-};
-
-const getWeekNumber = (date) => {
-  const target = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const dayNum = target.getUTCDay() || 7;
-  target.setUTCDate(target.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 1));
-  return Math.ceil(((target - yearStart) / 86400000 + 1) / 7);
-};
+}
 
 const MainScreen = ({ navigation }) => {
-  const [glucoseStats, setGlucoseStats] = useState(DEFAULT_GLUCOSE_STATS);
-  const [nutritionStats, setNutritionStats] = useState(DEFAULT_NUTRITION_STATS);
-  const [calendarDays, setCalendarDays] = useState({});
-  const [currentWeekStart, setCurrentWeekStart] = useState(() => getWeekStart(new Date()));
-  const [healthSummary, setHealthSummary] = useState(null);
-  const [goalProgress, setGoalProgress] = useState(DEFAULT_GOAL_PROGRESS);
-  const [achievements, setAchievements] = useState(null);
-  const [personality, setPersonality] = useState(null);
-  const [notifications, setNotifications] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [mealQuery, setMealQuery] = useState('');
-  const [selectedMeal, setSelectedMeal] = useState(null);
-  const [portion, setPortion] = useState(1);
-  const [showMealList, setShowMealList] = useState(true);
-  const [mealEntries, setMealEntries] = useState([]);
-  const [currentMealNumber, setCurrentMealNumber] = useState(1);
+  const [waterCount, setWaterCount] = useState(0);
+  const [stepsCount, setStepsCount] = useState(5847);
+  const [caloriesConsumed, setCaloriesConsumed] = useState(1240);
+  const [activeMinutes, setActiveMinutes] = useState(32);
+  const [heartRate, setHeartRate] = useState(72);
+  const [sleepData, setSleepData] = useState('7sa 24dk');
+  const [healthSyncEnabled, setHealthSyncEnabled] = useState(false);
 
+  const CALORIE_GOAL = 2000;
+  const STEPS_GOAL = 10000;
+  const WATER_GOAL = 8;
 
-  const loadPersistedStats = useCallback(async () => {
-    try {
-      const [glucoseRaw, nutritionRaw, calendarRaw] = await Promise.all([
-        AsyncStorage.getItem(LATEST_GLUCOSE_STATS_KEY),
-        AsyncStorage.getItem(LATEST_NUTRITION_STATS_KEY),
-        AsyncStorage.getItem(CALENDAR_STORAGE_KEY),
-      ]);
-
-      setGlucoseStats(glucoseRaw ? JSON.parse(glucoseRaw) : DEFAULT_GLUCOSE_STATS);
-      setNutritionStats(nutritionRaw ? JSON.parse(nutritionRaw) : DEFAULT_NUTRITION_STATS);
-      setCalendarDays(calendarRaw ? JSON.parse(calendarRaw) : {});
-    } catch (error) {
-      console.error('MainScreen storage load failed', error);
-    }
-  }, []);
-
-  const fetchDynamicData = useCallback(async () => {
-    try {
-      const safeGoalProgress = async () => {
-        try {
-          const res = await getTodayGoalProgress();
-          return res || null;
-        } catch (err) {
-          console.error('getTodayGoalProgress failed', err);
-          return null;
-        }
-      };
-
-      const safeBadges = async () => {
-        try {
-          const res = await checkAndAwardBadges();
-          return res || null;
-        } catch (err) {
-          console.error('checkAndAwardBadges failed', err);
-          return null;
-        }
-      };
-
-      const safeNotifications = async () => {
-        try {
-          const res = await generateSmartNotification();
-          return res || [];
-        } catch (err) {
-          console.error('generateSmartNotification failed', err);
-          return [];
-        }
-      };
-
-      const safePersona = async () => {
-        try {
-          const res = await analyzePersonality();
-          return res || null;
-        } catch (err) {
-          console.error('analyzePersonality failed', err);
-          return null;
-        }
-      };
-
-      const [summary, progress, badgeResult, persona, smartNotifications] = await Promise.all([
-        getTodayHealthSummary(),
-        safeGoalProgress(),
-        safeBadges(),
-        safePersona(),
-        safeNotifications(),
-      ]);
-
-      setHealthSummary(summary);
-      setGoalProgress(
-        progress || {
-          steps: { current: 0, target: 0 },
-          calories: { current: 0, target: 0 },
-          glucose: { inRangeCount: 0, totalCount: 1 },
-          totalAchieved: 0,
-          totalGoals: 0,
-          overallScore: 0,
-        }
-      );
-      setAchievements(badgeResult);
-      setPersonality(persona);
-      setNotifications(smartNotifications);
-    } catch (error) {
-      console.error('MainScreen dynamic data failed', error);
-    }
-  }, []);
-
+  // Apple Health'i başlat
   useEffect(() => {
-    loadPersistedStats();
-  }, [loadPersistedStats]);
+    const setupAppleHealth = async () => {
+      if (Platform.OS !== 'ios' || !appleHealthSync) {
+        console.log('💡 Apple Health sadece iOS cihazlarda kullanılabilir');
+        return;
+      }
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchDynamicData();
-    }, [fetchDynamicData])
-  );
-
-  const handleRefresh = useCallback(async () => {
-    try {
-      setRefreshing(true);
-      await loadPersistedStats();
-      await fetchDynamicData();
-    } finally {
-      setRefreshing(false);
-    }
-  }, [fetchDynamicData, loadPersistedStats]);
-
-  const persistCalendar = useCallback((data) => {
-    AsyncStorage.setItem(CALENDAR_STORAGE_KEY, JSON.stringify(data)).catch((error) =>
-      console.error('Calendar persist failed', error)
-    );
-  }, []);
-
-  const handleToggleDayStatus = useCallback(
-    (dayKey) => {
-      setCalendarDays((prev) => {
-        const nextStatus = cycleStatus(prev[dayKey]?.status ?? null);
-        const updated = {
-          ...prev,
-          [dayKey]: { ...(prev[dayKey] || {}), status: nextStatus },
-        };
-        persistCalendar(updated);
-        return updated;
-      });
-    },
-    [persistCalendar]
-  );
-
-  const shiftWeek = useCallback((direction) => {
-    setCurrentWeekStart((prev) => {
-      const next = new Date(prev);
-      next.setDate(next.getDate() + direction * 7);
-      return getWeekStart(next);
-    });
-  }, []);
-
-  const weekDays = useMemo(() => {
-    const weekList = buildWeekDays(currentWeekStart);
-    return weekList.map((date, index) => {
-      const key = formatDateKey(date);
-      const stored = calendarDays[key] || {};
-      return {
-        key,
-        date,
-        status: stored.status || null,
-        label: WEEKDAY_LABELS[index],
-      };
-    });
-  }, [calendarDays, currentWeekStart]);
-
-  const weekRangeLabel = useMemo(() => {
-    if (!weekDays.length) return '';
-    const formatter = new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'long' });
-    const startText = formatter.format(weekDays[0].date);
-    const endText = formatter.format(weekDays[weekDays.length - 1].date);
-    return `${startText} - ${endText}`;
-  }, [weekDays]);
-
-  const headerBadges = useMemo(() => {
-    const badges = [];
-    if (goalProgress?.overallScore) {
-      badges.push({ id: 'score', icon: '🏆', label: `${goalProgress.overallScore}% başarı` });
-    }
-    if (achievements?.streak) {
-      badges.push({ id: 'streak', icon: '🔥', label: `${achievements.streak} gün seri` });
-    }
-    if (personality?.name) {
-      badges.push({ id: 'persona', icon: '🧠', label: personality.name });
-    }
-    return badges.slice(0, 3);
-  }, [goalProgress, achievements, personality]);
-
-  const metricCircles = useMemo(
-    () => [
-      {
-        id: 'glucose',
-        icon: '🩸',
-        label: 'Şeker',
-        value: glucoseStats.lastValue ?? '-',
-        unit: glucoseStats.lastValue ? 'mg/dL' : '',
-        hint: glucoseStats.time || 'Son ölçüm yok',
-        color: '#ef4444',
-      },
-      {
-        id: 'calories',
-        icon: '🔥',
-        label: 'Kalori',
-        value: nutritionStats.calories || 0,
-        unit: 'kkal',
-        hint: `Hedef ${MACRO_GOALS.calories}`,
-        color: '#f97316',
-      },
-      {
-        id: 'steps',
-        icon: '👟',
-        label: 'Adım',
-        value: goalProgress?.steps?.current || healthSummary?.totalSteps || 0,
-        unit: '',
-        hint: goalProgress?.steps?.target ? `Hedef ${goalProgress.steps.target}` : 'Güncel hedef yok',
-        color: '#10b981',
-      },
-      {
-        id: 'heart',
-        icon: '❤️',
-        label: 'Nabız',
-        value: healthSummary?.avgHeartRate || '-',
-        unit: healthSummary?.avgHeartRate ? 'bpm' : '',
-        hint: goalProgress?.heartRate?.inRange ? 'İdeal aralıkta' : 'Takip et',
-        color: '#6366f1',
-      },
-    ],
-    [glucoseStats, nutritionStats, goalProgress, healthSummary]
-  );
-
-  const handleNavigate = useCallback(
-    (screen) => {
-      if (!screen) return;
-      navigation.navigate(screen);
-    },
-    [navigation]
-  );
-
-  const handleSelectMeal = useCallback((meal) => {
-    setSelectedMeal(meal);
-    setMealQuery(meal.name);
-    setPortion(1);
-    setShowMealList(false);
-  }, []);
-
-  const calorieRemaining = Math.max(0, MACRO_GOALS.calories - (nutritionStats.calories || 0));
-  const topQuickActions = [];
-  const filteredMeals = useMemo(() => {
-    if (!mealQuery.trim()) return MEAL_LIBRARY.slice(0, 5);
-    const q = mealQuery.toLowerCase();
-    return MEAL_LIBRARY.filter((m) => m.name.toLowerCase().includes(q)).slice(0, 5);
-  }, [mealQuery]);
-
-  // Sadece tıklama ile seçim; yazma sadece filtre için.
-
-  const loggedCalories = useMemo(
-    () => mealEntries.reduce((sum, entry) => sum + (entry.calories || 0), 0),
-    [mealEntries]
-  );
-  const currentMealEntries = useMemo(
-    () => mealEntries.filter((entry) => entry.order === currentMealNumber),
-    [mealEntries, currentMealNumber]
-  );
-  const selectedCalories = selectedMeal ? Math.round(selectedMeal.caloriesPerPortion * portion) : 0;
-  const totalCaloriesToday = (nutritionStats.calories || 0) + loggedCalories + selectedCalories;
-  const calorieProgress = Math.min(1, totalCaloriesToday / MACRO_GOALS.calories);
-  const ringRadius = 60;
-  const ringStroke = 12;
-  const ringCircumference = 2 * Math.PI * ringRadius;
-  const ringOffset = ringCircumference * (1 - calorieProgress);
-  const currentWeekNumber = useMemo(() => getWeekNumber(new Date()), []);
-  const mealLogEntries = useMemo(
-    () => [...mealEntries].sort((a, b) => a.order - b.order),
-    [mealEntries]
-  );
-
-  const handleAddMeal = useCallback(() => {
-    if (!selectedMeal) return;
-    const entry = {
-      id: `${selectedMeal.id}-${Date.now()}`,
-      name: selectedMeal.name,
-      portion,
-      calories: selectedCalories,
-      order: currentMealNumber,
+      try {
+        await appleHealthSync.initAppleHealth();
+        setHealthSyncEnabled(true);
+        await syncHealthData();
+        console.log('✅ Apple Health başarıyla bağlandı');
+      } catch (error) {
+        console.log('⚠️ Apple Health başlatılamadı:', error);
+        Alert.alert(
+          'Apple Health',
+          'Sağlık verilerinizi senkronize etmek için Apple Health erişimine izin verin.',
+          [{ text: 'Tamam' }]
+        );
+      }
     };
-    setMealEntries((prev) => [...prev, entry]);
-    setSelectedMeal(null);
-    setPortion(1);
-    setMealQuery('');
-    setShowMealList(false);
-  }, [selectedMeal, portion, selectedCalories, currentMealNumber]);
 
-  const handleCompleteMeal = useCallback(() => {
-    if (currentMealEntries.length === 0) {
-      Alert.alert('Öğün boş', 'Bu öğüne ekli yemek yok. Lütfen yemek ekleyin.');
-      return;
+    setupAppleHealth();
+
+    // Her 5 dakikada bir otomatik senkronizasyon
+    const interval = setInterval(() => {
+      if (healthSyncEnabled && appleHealthSync) {
+        syncHealthData();
+      }
+    }, 300000); // 5 dakika
+
+    return () => clearInterval(interval);
+  }, [healthSyncEnabled]);
+
+  // Sağlık verilerini senkronize et
+  const syncHealthData = async () => {
+    if (!appleHealthSync) return;
+
+    try {
+      const healthData = await appleHealthSync.syncAllHealthData();
+      
+      setStepsCount(healthData.steps || 0);
+      setWaterCount(healthData.water?.glasses || 0);
+      setHeartRate(healthData.heartRate || 72);
+      setSleepData(healthData.sleep?.formatted || '0sa 0dk');
+      
+      // Yakılan kalorileri aktif dakikaya çevir
+      if (healthData.calories) {
+        setActiveMinutes(Math.round(healthData.calories / 10));
+      }
+
+      console.log('✅ Sağlık verileri güncellendi:', {
+        adım: healthData.steps,
+        su: healthData.water?.glasses,
+        kalp: healthData.heartRate,
+        uyku: healthData.sleep?.formatted
+      });
+    } catch (error) {
+      console.log('⚠️ Sağlık verileri çekilemedi:', error);
     }
-    setSelectedMeal(null);
-    setPortion(1);
-    setMealQuery('');
-    setShowMealList(false);
-    setCurrentMealNumber((prev) => prev + 1);
-  }, [currentMealEntries.length]);
+  };
 
-  
-  const handleEditMeal = useCallback(() => {
-    Alert.alert('???n d?zenleme', '???n d?zenleme ak??? hen?z eklenmedi.');
-  }, []);
+  // Su tüketimini artır ve Apple Health'e kaydet
+  const handleWaterPress = async () => {
+    const newCount = waterCount + 1;
+    setWaterCount(newCount);
+    
+    // Apple Health'e kaydet
+    if (appleHealthSync && healthSyncEnabled) {
+      try {
+        await appleHealthSync.saveWaterIntake(250); // 1 bardak = 250ml
+        console.log('✅ Su tüketimi Apple Health\'e kaydedildi');
+      } catch (error) {
+        console.log('⚠️ Su kaydedilemedi:', error);
+      }
+    } else {
+      console.log('💧 Su tüketimi:', newCount, 'bardak');
+    }
+  };
 
-  const handleCompleteDay = useCallback(() => {
-    const addedCalories = mealEntries.reduce((sum, entry) => sum + (entry.calories || 0), 0);
-    setNutritionStats((prev) => ({
-      ...prev,
-      calories: (prev?.calories || 0) + addedCalories,
-    }));
-    setMealEntries([]);
-    setSelectedMeal(null);
-    setPortion(1);
-    setMealQuery('');
-    setShowMealList(false);
-    setCurrentMealNumber(1);
-    Alert.alert('G?n tamamland?', 'Yemekler g?nl?k kalori takibine eklendi.');
-  }, [mealEntries]);
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    if (appleHealthSync && healthSyncEnabled) {
+      await syncHealthData();
+    }
+    await new Promise(resolve => setTimeout(resolve, 800));
+    setRefreshing(false);
+  };
 
-  const handleEditDay = useCallback(() => {
-    Alert.alert('G?n? d?zenle', 'G?n d?zenleme ak??? hen?z eklenmedi.');
-  }, []);
+  // Activity Rings (Apple Watch style)
+  const rings = [
+    { 
+      id: 'move',
+      progress: caloriesConsumed / CALORIE_GOAL,
+      color: '#FF3B30',
+      label: 'Kalori',
+      value: caloriesConsumed,
+      goal: CALORIE_GOAL,
+      unit: 'kkal'
+    },
+    { 
+      id: 'exercise',
+      progress: activeMinutes / 60,
+      color: '#32D74B',
+      label: 'Egzersiz',
+      value: activeMinutes,
+      goal: 60,
+      unit: 'dk'
+    },
+    { 
+      id: 'stand',
+      progress: waterCount / WATER_GOAL,
+      color: '#0A84FF',
+      label: 'Su',
+      value: waterCount,
+      goal: WATER_GOAL,
+      unit: 'bardak'
+    },
+  ];
 
-return (
+  return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient
-        colors={['#0ccb6a', '#0fbd7a']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.backgroundGradient}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={handleRefresh}
+            tintColor="#0A84FF"
+          />
+        }
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#0ea5e9" />
-          }
-        >
-          <View style={styles.navBar}>
-            <View style={styles.brand}>
-              <Text style={styles.brandIcon}>🍏</Text>
-              <Text style={styles.brandText}>MyNetDiary</Text>
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.navLinks}
-            >
-              {navLinks.map((link) => {
-                const isActive = link.target === 'HealthyRecipes';
-                return (
-                  <Pressable
-                    key={link.id}
-                    style={styles.navLinkWrap}
-                    onPress={() => handleNavigate(link.target)}
-                  >
-                    <Text style={[styles.navLink, isActive && styles.navLinkActive]}>
-                      {link.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-            <View style={styles.navActions}>
-              <Pressable style={styles.homeButton} onPress={() => handleNavigate('Main')}>
-                <Text style={styles.homeButtonText}>Ana Sayfa</Text>
-              </Pressable>
-              <View style={styles.signUp}>
-                <Text style={styles.signUpText}>SIGN UP</Text>
-              </View>
-              <View style={styles.signIn}>
-                <Text style={styles.signInText}>SIGN IN</Text>
-              </View>
-            </View>
-          </View>
-
-                    <MascotHeader showBack={false} theme="light" onToggleTheme={null} />
-
-          <View style={styles.summaryMealCard}>
-            <TodaySummaryCard
-              eaten={(nutritionStats.calories || 0) + loggedCalories + selectedCalories}
-              remaining={Math.max(0, MACRO_GOALS.calories - ((nutritionStats.calories || 0) + loggedCalories + selectedCalories))}
-              burned={healthSummary?.totalCalories || 0}
-              carbs={{ current: nutritionStats.carbs || 0, target: MACRO_GOALS.carbs }}
-              protein={{ current: nutritionStats.protein || 0, target: MACRO_GOALS.protein }}
-              fat={{ current: nutritionStats.fat || 0, target: MACRO_GOALS.fat }}
-              diamonds={goalProgress?.overallScore || 0}
-              streak={achievements?.streak || 0}
-              week={getWeekNumber(new Date())}
-            />
-
-            <View style={styles.mealSection}>
-              <View style={styles.mealHeader}>
-                <View>
-                  <Text style={styles.mealTitle}>Kahvaltı / Öğün {currentMealNumber}</Text>
-                  <Text style={styles.mealSubtitle}>Yediğin yemeği seç ve porsiyonunu gir.</Text>
-                </View>
-                <View style={styles.mealBadge}>
-                  <Text style={styles.mealBadgeText}>Yeni</Text>
-                </View>
-              </View>
-
-              <View style={styles.mealContentRow}>
-                <View style={styles.mealLeft}>
-                  <TextInput
-                    placeholder="Örn: Avokadolu tost"
-                    placeholderTextColor="#94a3b8"
-                    value={mealQuery}
-                    onChangeText={(text) => {
-                      setMealQuery(text);
-                      setShowMealList(true);
-                    }}
-                    onFocus={() => setShowMealList(true)}
-                    style={styles.mealSearch}
-                  />
-                  {showMealList && (
-                    <View style={styles.mealList}>
-                      {filteredMeals.map((meal) => (
-                        <Pressable
-                          key={meal.id}
-                          style={[
-                            styles.mealItem,
-                            selectedMeal?.id === meal.id && styles.mealItemActive,
-                          ]}
-                          onPress={() => handleSelectMeal(meal)}
-                        >
-                          <View>
-                            <Text style={styles.mealItemTitle}>{meal.name}</Text>
-                            <Text style={styles.mealItemMeta}>{meal.caloriesPerPortion} kkal / porsiyon</Text>
-                          </View>
-                          <Text style={styles.mealItemArrow}>&gt;</Text>
-                        </Pressable>
-                      ))}
-                    </View>
-                  )}
-                </View>
-
-                <View style={styles.mealRight}>
-                  {selectedMeal && (
-                    <>
-                      <Text style={styles.portionLabel}>Porsiyon</Text>
-                      <View style={styles.portionStepper}>
-                        <Pressable
-                          style={styles.stepperButton}
-                          onPress={() =>
-                            setPortion((prev) => Math.max(0.1, Math.round((prev - 0.1) * 10) / 10))
-                          }
-                        >
-                          <Text style={styles.stepperText}>-</Text>
-                        </Pressable>
-                        <View style={styles.stepperValue}>
-                          <Text style={styles.stepperValueText}>{portion.toFixed(1)}</Text>
-                        </View>
-                        <Pressable
-                          style={styles.stepperButton}
-                          onPress={() => setPortion((prev) => Math.round((prev + 0.1) * 10) / 10)}
-                        >
-                          <Text style={styles.stepperText}>+</Text>
-                        </Pressable>
-                      </View>
-                    </>
-                  )}
-
-                  <View style={styles.mealFooter}>
-                    <View style={styles.mealSummary}>
-                      {mealLogEntries.length > 0 && (
-                        <View style={styles.mealLog}>
-                          <View style={styles.mealLogHeader}>
-                            <Text style={styles.mealLogBold}>Tamamlanan Öğünler</Text>
-                            <Pressable style={styles.iconButton} onPress={handleEditMeal}>
-                              <Text style={styles.iconButtonText}>??</Text>
-                            </Pressable>
-                          </View>
-                          {mealLogEntries.map((entry) => (
-                            <Text key={entry.id} style={styles.mealLogText}>
-                              <Text style={styles.mealLogBold}>Öğün {entry.order}: </Text>
-                              {entry.name} ({entry.portion.toFixed(1)} porsiyon, {entry.calories} kkal)
-                            </Text>
-                          ))}
-                        </View>
-                      )}
-                      <Text style={styles.mealSummaryHint}>
-                        {selectedMeal
-                          ? `${selectedMeal.name} (${portion.toFixed(1)} porsiyon) eklenecek.`
-                          : 'Seçili öğün yok.'}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.mealActions}>
-                    {selectedMeal && (
-                      <Pressable style={styles.primaryButton} onPress={handleAddMeal}>
-                        <Text style={styles.primaryButtonText}>Öğüne Ekle</Text>
-                      </Pressable>
-                    )}
-                    <Pressable style={styles.secondaryButton} onPress={handleCompleteMeal}>
-                      <Text style={styles.secondaryButtonText}>Öğünü Tamamla</Text>
-                    </Pressable>
-                    <Pressable style={styles.secondaryButton} onPress={handleCompleteDay}>
-                      <Text style={styles.secondaryButtonText}>Günü Tamamla</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.heroRow}>
-            <View style={styles.heroCopy}>
-              <Text style={styles.heroTag}>Modern Wellness</Text>
-              <Text style={styles.heroTitle}>
-                Be Healthy{"\n"}for Life!
-              </Text>
-              <Text style={styles.heroSubtitle}>
-                Kilo, diyet ve beslenme asistanın. Bugünü birlikte planlayalım.
-              </Text>
-              <View style={styles.ctaRow}>
-                <Pressable style={styles.ctaPrimary} onPress={() => handleNavigate('DietPlanner')}>
-                  <Text style={styles.ctaPrimaryText}>Planıma Başla</Text>
-                </Pressable>
-                <Pressable style={styles.ctaGhost} onPress={() => handleNavigate('HealthyRecipes')}>
-                  <Text style={styles.ctaGhostText}>Tariflere Bak</Text>
-                </Pressable>
-              </View>
-              <View style={styles.storeRow}>
-                <View style={styles.storeBadge}>
-                  <Text style={styles.storeTop}>Download on the</Text>
-                  <Text style={styles.storeBottom}>App Store</Text>
-                </View>
-                <View style={styles.storeBadge}>
-                  <Text style={styles.storeTop}>GET IT ON</Text>
-                  <Text style={styles.storeBottom}>Google Play</Text>
-                </View>
-              </View>
-            </View>
-
-            <View style={styles.mockContainer}>
-              <View style={styles.mockHeader}>
-                <View style={styles.mockTabs}>
-                  {navLinks.map((item) => {
-                    const isActive = item.target === 'HealthyRecipes';
-                    return (
-                      <View key={item.id} style={styles.mockTab}>
-                        <Text style={[styles.mockTabText, isActive && styles.mockTabTextActive]}>
-                          {item.label}
-                        </Text>
-                        {isActive && <View style={styles.mockTabUnderline} />}
-                      </View>
-                    );
-                  })}
-                </View>
-              </View>
-              <View style={styles.mockCard}>
-                {dietOptions.map((diet) => (
-                  <View key={diet.id} style={styles.dietRow}>
-                    <View
-                      style={[
-                        styles.dietIconWrap,
-                        { borderColor: `${diet.color}aa`, backgroundColor: `${diet.color}15` },
-                      ]}
-                    >
-                      <Text style={styles.dietEmoji}>{diet.emoji}</Text>
-                    </View>
-                    <Text style={styles.dietLabel}>{diet.label}</Text>
-                  </View>
-                ))}
-                <View style={styles.mockFooter}>
-                  <Text style={styles.mockHint}>Kendi ritmine uyan planı seç.</Text>
-                </View>
-              </View>
+        {/* iOS 18 Large Title Header */}
+        <View style={styles.headerSection}>
+          <Text style={styles.largeTitle}>Özet</Text>
+          <Text style={styles.dateSubtitle}>{new Date().toLocaleDateString('tr-TR', { 
+            weekday: 'long', 
+            day: 'numeric', 
+            month: 'long' 
+          })}</Text>
         </View>
-            </View>
 
-          <View style={styles.heroCard}>
-            <View style={styles.heroHeader}>
-              <View>
-                <Text style={styles.heroTitleSmall}>Bugünün Özeti</Text>
-                <Text style={styles.heroSubtitleSmall}>
-                  {goalProgress?.overallScore
-                    ? `Genel skorun ${goalProgress.overallScore}%`
-                    : 'Hedeflerini kontrol etmeyi unutma'}
-                </Text>
-              </View>
-              {headerBadges.length > 0 && (
-                <View style={styles.badgeRow}>
-                  {headerBadges.map((badge) => (
-                    <View key={badge.id} style={styles.badgeChip}>
-                      <Text style={styles.badgeIcon}>{badge.icon}</Text>
-                      <Text style={styles.badgeLabel}>{badge.label}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-
-            <View style={styles.metricGrid}>
-              {metricCircles.map((card) => (
-                <View key={card.id} style={styles.metricTile}>
-                  <View style={[styles.metricCircle, { borderColor: card.color }]}>
-                    <Text style={styles.metricIconLarge}>{card.icon}</Text>
-                    <Text style={styles.metricValue}>{card.value}</Text>
-                    {card.unit ? <Text style={styles.metricUnit}>{card.unit}</Text> : null}
-                  </View>
-                  <Text style={styles.metricLabel}>{card.label}</Text>
-                  <Text style={styles.metricHint}>{card.hint}</Text>
-                </View>
-              ))}
-            </View>
+        {/* Activity Rings Card - Apple Health Style */}
+        <View style={styles.ringsCard}>
+          <View style={styles.ringsContainer}>
+            <ActivityRings rings={rings} />
           </View>
-
-          <View style={styles.weeklyCard}>
-            <View style={styles.weeklyHeader}>
-              <Text style={styles.sectionTitle}>Haftalık Çizelge</Text>
-              <View style={styles.weekControls}>
-                <Pressable style={styles.weekButton} onPress={() => shiftWeek(-1)}>
-                  <Text style={styles.weekButtonText}>‹</Text>
-                </Pressable>
-                <Text style={styles.weekRange}>{weekRangeLabel}</Text>
-                <Pressable style={styles.weekButton} onPress={() => shiftWeek(1)}>
-                  <Text style={styles.weekButtonText}>›</Text>
-                </Pressable>
-              </View>
-            </View>
-            <View style={styles.weeklyRow}>
-              {weekDays.map((day) => {
-                const meta = day.status ? STATUS_META[day.status] : STATUS_META.default;
-                return (
-                  <Pressable
-                    key={day.key}
-                    style={[
-                      styles.weekDayTile,
-                      { borderColor: meta.color, backgroundColor: meta.bg },
-                    ]}
-                    onPress={() => handleToggleDayStatus(day.key)}
-                  >
-                    <Text style={[styles.weekDayLabel, { color: meta.color }]}>{day.label}</Text>
-                    <Text style={styles.weekDayEmoji}>{meta.emoji}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-            <Text style={styles.weekHint}>Emoji seçimleri motivasyon günlüğüne kaydedilir.</Text>
-          </View>
-
-          {goalProgress && (
-            <View style={styles.sectionCard}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Bugünkü Hedefler</Text>
-                <Text style={styles.sectionSubtitle}>
-                  {goalProgress.totalAchieved}/{goalProgress.totalGoals} tamamlandı
+          <View style={styles.ringsStats}>
+            {rings.map(ring => (
+              <View key={ring.id} style={styles.ringStatRow}>
+                <View style={[styles.ringDot, { backgroundColor: ring.color }]} />
+                <Text style={styles.ringStatLabel}>{ring.label}</Text>
+                <Text style={styles.ringStatValue}>
+                  {ring.value} / {ring.goal} {ring.unit}
                 </Text>
-              </View>
-              <ProgressBar
-                label="Adım"
-                value={goalProgress.steps.current}
-                max={goalProgress.steps.target}
-                color="#0ea5e9"
-              />
-              <ProgressBar
-                label="Kalori"
-                value={goalProgress.calories.current}
-                max={goalProgress.calories.target}
-                color="#22c55e"
-                unit=" kkal"
-              />
-              <ProgressBar
-                label="Glukoz Aralık"
-                value={goalProgress.glucose.inRangeCount}
-                max={goalProgress.glucose.totalCount || 1}
-                color="#f97316"
-              />
-            </View>
-          )}
-
-          <WaterTracker />
-          <ActivitiesCard onConnect={() => handleNavigate('HealthSync')} />
-          <MilestoneCard days={Math.min(achievements?.streak || 0, 7)} onCommit={() => handleNavigate('Achievements')} />
-
-          <View style={styles.sectionCard}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Bildirimler</Text>
-            </View>
-            {notifications.length === 0 && (
-              <Text style={styles.muted}>Bugün için yeni bildirim yok. İyi gidiyorsun!</Text>
-            )}
-            {notifications.map((notif, index) => (
-              <View
-                key={`${notif.title}-${index}`}
-                style={[styles.notificationCard, styles[`notification${notif.type || 'info'}`]]}
-              >
-                <Text style={styles.notificationTitle}>
-                  {notif.icon || '🔔'} {notif.title}
-                </Text>
-                <Text style={styles.notificationMessage}>{notif.message}</Text>
               </View>
             ))}
           </View>
+        </View>
 
-          <View style={styles.menuGrid}>
-            {menuOptions.map((option) => (
-              <Pressable
-                key={option.id}
-                style={[styles.menuCard, { borderLeftColor: option.color }]}
-                onPress={() => handleNavigate(option.id)}
-              >
-                <Text style={styles.menuEmoji}>{option.title.split(' ')[0]}</Text>
-                <Text style={styles.menuTitle}>{option.title.replace(/^.*\s/, '')}</Text>
-                <Text style={styles.menuLink}>Aç ›</Text>
-              </Pressable>
-            ))}
+        {/* Health Metrics Grid */}
+        <View style={styles.metricsGrid}>
+          <MetricCard
+            icon="water"
+            value={waterCount}
+            unit="bardak"
+            label="Su"
+            color="#0A84FF"
+            onPress={handleWaterPress}
+          />
+          <MetricCard
+            icon="steps"
+            value={stepsCount.toLocaleString()}
+            unit="adım"
+            label="Adımlar"
+            color="#32D74B"
+          />
+          <MetricCard
+            icon="heart"
+            value={heartRate}
+            unit="bpm"
+            label="Kalp Atışı"
+            color="#FF3B30"
+          />
+          <MetricCard
+            icon="sleep"
+            value={sleepData}
+            unit=""
+            label="Uyku"
+            color="#BF5AF2"
+          />
+        </View>
+
+        {/* Quick Actions - iOS Style */}
+        <View style={styles.quickActionsSection}>
+          <Text style={styles.sectionTitle}>Hızlı İşlemler</Text>
+          <View style={styles.quickActionsGrid}>
+            <QuickActionButton
+              icon="meal"
+              label="Yemek Ekle"
+              color="#FF9500"
+              onPress={() => navigation.navigate('AddMeal')}
+            />
+            <QuickActionButton
+              icon="glucose"
+              label="Şeker Ölç"
+              color="#FF3B30"
+              onPress={() => navigation.navigate('BloodSugar')}
+            />
+            <QuickActionButton
+              icon="exercise"
+              label="Egzersiz"
+              color="#32D74B"
+              onPress={() => {}}
+            />
+            <QuickActionButton
+              icon="chart"
+              label="İstatistik"
+              color="#0A84FF"
+              onPress={() => navigation.navigate('Profile')}
+            />
           </View>
-        </ScrollView>
-        <BottomNavBar navigation={navigation} activeKey="Main" />
-      </LinearGradient>
+        </View>
+
+        {/* Today's Summary */}
+        <View style={styles.summaryCard}>
+          <Text style={styles.cardTitle}>Bugünün Özeti</Text>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Alınan Kalori</Text>
+            <Text style={styles.summaryValue}>{caloriesConsumed} kkal</Text>
+          </View>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Kalan Kalori</Text>
+            <Text style={styles.summaryValue}>{CALORIE_GOAL - caloriesConsumed} kkal</Text>
+          </View>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Aktif Dakika</Text>
+            <Text style={styles.summaryValue}>{activeMinutes} dk</Text>
+          </View>
+        </View>
+
+        {/* Menu Cards */}
+        <View style={styles.menuSection}>
+          <Text style={styles.sectionTitle}>Sağlık & Fitness</Text>
+          {[
+            { title: 'Diyet Planı', icon: 'calendar', screen: 'DietPlanner', color: '#FF9500' },
+            { title: 'Sağlıklı Tarifler', icon: 'meal', screen: 'HealthyRecipes', color: '#32D74B' },
+            { title: 'Glukoz Takibi', icon: 'heart', screen: 'GlucoseCalendar', color: '#FF3B30' },
+            { title: 'Ayarlar', icon: 'settings', screen: 'Profile', color: '#8E8E93' },
+          ].map((item, index) => (
+            <Pressable
+              key={index}
+              style={styles.menuCard}
+              onPress={() => navigation.navigate(item.screen)}
+            >
+              <View style={[styles.menuIconCircle, { backgroundColor: item.color + '15' }]}>
+                <HealthIcon name={item.icon} size={24} color={item.color} />
+              </View>
+              <Text style={styles.menuTitle}>{item.title}</Text>
+              <Svg width={20} height={20} viewBox="0 0 24 24">
+                <Path d="M9 6l6 6-6 6" stroke="#C7C7CC" strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              </Svg>
+            </Pressable>
+          ))}
+        </View>
+
+        <View style={{ height: 100 }} />
+      </ScrollView>
+      <BottomNavBar navigation={navigation} activeKey="Main" />
     </SafeAreaView>
   );
 };
 
-const cardShadow = {
-  shadowColor: '#0f172a',
-  shadowOffset: { width: 0, height: 14 },
-  shadowOpacity: 0.16,
-  shadowRadius: 18,
-  elevation: 8,
+// Health Icon Component - Apple Health Style
+const HealthIcon = ({ name, size = 24, color = '#000' }) => {
+  const iconPaths = {
+    water: "M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z",
+    steps: "M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7",
+    heart: "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z",
+    sleep: "M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z",
+    meal: "M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z",
+    glucose: "M19.8 18.4L14 10.67V6.5l1.35-1.69c.26-.33.03-.81-.39-.81H9.04c-.42 0-.65.48-.39.81L10 6.5v4.17L4.2 18.4c-.49.66-.02 1.6.8 1.6h14c.82 0 1.29-.94.8-1.6z",
+    exercise: "M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29z",
+    chart: "M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z",
+    calendar: "M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM9 14H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2zm-8 4H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2z",
+    settings: "M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"
+  };
+
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Path d={iconPaths[name]} fill={color} />
+    </Svg>
+  );
 };
+
+// Activity Rings Component (Apple Watch style)
+const ActivityRings = ({ rings }) => {
+  const size = 180;
+  const strokeWidth = 14;
+  const spacing = 10;
+
+  return (
+    <View style={{ width: size, height: size }}>
+      <Svg width={size} height={size}>
+        {rings.map((ring, index) => {
+          const radius = (size / 2) - (strokeWidth / 2) - (index * (strokeWidth + spacing));
+          const circumference = 2 * Math.PI * radius;
+          const offset = circumference * (1 - ring.progress);
+
+          return (
+            <React.Fragment key={ring.id}>
+              {/* Background ring */}
+              <Circle
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                stroke={ring.color + '20'}
+                strokeWidth={strokeWidth}
+                fill="none"
+              />
+              {/* Progress ring */}
+              <Circle
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                stroke={ring.color}
+                strokeWidth={strokeWidth}
+                fill="none"
+                strokeDasharray={circumference}
+                strokeDashoffset={offset}
+                strokeLinecap="round"
+                rotation="-90"
+                origin={`${size / 2}, ${size / 2}`}
+              />
+            </React.Fragment>
+          );
+        })}
+      </Svg>
+    </View>
+  );
+};
+
+// Metric Card Component
+const MetricCard = ({ icon, value, unit, label, color, onPress }) => (
+  <Pressable style={styles.metricCard} onPress={onPress}>
+    <View style={[styles.iconCircle, { backgroundColor: color }]}>
+      <HealthIcon name={icon} size={28} color="#FFFFFF" />
+    </View>
+    <Text style={styles.metricValue}>{value}</Text>
+    {unit ? <Text style={styles.metricUnit}>{unit}</Text> : null}
+    <Text style={styles.metricLabel}>{label}</Text>
+  </Pressable>
+);
+
+// Quick Action Button
+const QuickActionButton = ({ icon, label, color, onPress }) => (
+  <Pressable style={styles.quickActionBtn} onPress={onPress}>
+    <View style={[styles.quickActionIcon, { backgroundColor: color }]}>
+      <HealthIcon name={icon} size={32} color="#FFFFFF" />
+    </View>
+    <Text style={styles.quickActionLabel}>{label}</Text>
+  </Pressable>
+);
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#0ccb6a',
+    backgroundColor: '#F2F2F7', // iOS system background
   },
-  backgroundGradient: {
-    flex: 1,
+  scrollContent: {
+    paddingBottom: 20,
   },
-  content: {
-    padding: 14,
-    paddingBottom: 120,
+  headerSection: {
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 0 : 20,
+    paddingBottom: 16,
   },
-  navBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-    flexWrap: 'wrap',
-  },
-  brand: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  brandIcon: {
-    fontSize: 26,
-  },
-  brandText: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#fefefe',
-  },
-  navLinks: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 6,
-    paddingHorizontal: 2,
-  },
-  navLinkWrap: {
-    paddingHorizontal: 4,
-    paddingVertical: 6,
-  },
-  navLink: {
-    fontSize: 14,
-    color: '#e6f6ff',
-    opacity: 0.9,
-  },
-  navLinkActive: {
-    color: '#ffffff',
-    fontWeight: '800',
-  },
-  navActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  homeButton: {
-    borderColor: '#e6f6ff',
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-  },
-  homeButtonText: {
-    color: '#0a2f19',
-    fontWeight: '800',
-    fontSize: 12,
-  },
-  signUp: {
-    backgroundColor: '#ff9f1c',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 18,
-  },
-  signUpText: {
-    color: '#0a2f19',
-    fontWeight: '800',
-    fontSize: 13,
-  },
-  signIn: {
-    borderColor: '#e6f6ff',
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  signInText: {
-    color: '#e6f6ff',
+  largeTitle: {
+    fontSize: 34,
     fontWeight: '700',
-    fontSize: 13,
-  },
-  summaryMealCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 24,
-    padding: 18,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    ...cardShadow,
-  },
-  mealSection: {
-    marginTop: 8,
-  },
-  mealCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 24,
-    padding: 18,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    ...cardShadow,
-    overflow: 'visible',
-    position: 'relative',
-  },
-  mealHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  mealTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  mealSubtitle: {
-    fontSize: 13,
-    color: '#475569',
-    marginTop: 2,
-  },
-  mealBadge: {
-    backgroundColor: '#e0f2fe',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 14,
-  },
-  mealBadgeText: {
-    color: '#0284c7',
-    fontWeight: '700',
-    fontSize: 12,
-  },
-  mealSearch: {
-    backgroundColor: '#f8fbff',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#0f172a',
-    marginBottom: 8,
-  },
-  mealContentRow: {
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    gap: 12,
-  },
-  mealLeft: {
-    flex: 1,
-    position: 'relative',
-    width: '100%',
-    zIndex: 20,
-  },
-  mealRight: {
-    width: '100%',
-    zIndex: 10,
-  },
-  mealList: {
-    position: 'absolute',
-    top: 54,
-    left: 0,
-    right: 0,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    backgroundColor: '#ffffff',
-    overflow: 'hidden',
-    maxHeight: 260,
-    zIndex: 30,
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-    elevation: 12,
-  },
-  mealItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  mealItemActive: {
-    backgroundColor: '#e0f2fe',
-  },
-  portionLabel: {
-    fontSize: 12,
-    color: '#475569',
-    marginBottom: 6,
-    fontWeight: '700',
-  },
-  mealItemActive: {
-    borderColor: '#0ea5e9',
-    backgroundColor: '#e0f2fe',
-  },
-  mealItemTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  mealItemMeta: {
-    fontSize: 12,
-    color: '#64748b',
-  },
-  mealItemArrow: {
-    fontSize: 16,
-    color: '#0ea5e9',
-    fontWeight: '800',
-  },
-  portionStepper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 14,
-  },
-  stepperButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f8fbff',
-  },
-  stepperText: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  stepperValue: {
-    minWidth: 64,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    backgroundColor: '#ffffff',
-    alignItems: 'center',
-  },
-  stepperValueText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  mealFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    marginTop: 4,
-    flexWrap: 'wrap',
-  },
-  calorieCircle: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-    alignSelf: 'center',
-  },
-  calorieRing: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    borderWidth: 10,
-    borderColor: '#e2e8f0',
-  },
-  calorieProgress: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    borderWidth: 10,
-    borderColor: '#0ea5e9',
-    opacity: 0.4,
-  },
-  calorieInner: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'absolute',
-    top: 22,
-    left: 22,
-  },
-  calorieValue: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  calorieLabel: {
-    fontSize: 12,
-    color: '#64748b',
-  },
-  calorieRemain: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0ea5e9',
-    marginTop: 2,
-  },
-  calorieBurn: {
-    fontSize: 12,
-    color: '#ef4444',
-    marginTop: 2,
-  },
-  mealSummary: {
-    flex: 1,
-    gap: 4,
-    minWidth: '55%',
-  },
-  mealSummaryLabel: {
-    fontSize: 12,
-    color: '#64748b',
-    fontWeight: '600',
-  },
-  mealSummaryValue: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  mealSummaryHint: {
-    fontSize: 12,
-    color: '#475569',
-  },
-  mealLog: {
-    marginTop: 6,
-    gap: 2,
-  },
-  mealLogHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    color: '#000000',
+    letterSpacing: 0.374,
     marginBottom: 4,
   },
-  mealLogText: {
-    fontSize: 12,
-    color: '#0f172a',
+  dateSubtitle: {
+    fontSize: 15,
+    color: '#8E8E93',
+    fontWeight: '400',
   },
-  mealLogBold: {
-    fontWeight: '800',
-    color: '#0f172a',
+  ringsCard: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginBottom: 20,
+    borderRadius: 20,
+    padding: 24,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
-  iconButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 10,
-    backgroundColor: '#f1f5f9',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  iconButtonText: {
-    fontSize: 12,
-  },
-  dailyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  ringsContainer: {
     alignItems: 'center',
+    marginBottom: 24,
   },
-  dropdownBackdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 1,
+  ringsStats: {
+    gap: 12,
   },
-  mealActions: {
+  ringStatRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-start',
-    gap: 8,
-    marginTop: 10,
+    alignItems: 'center',
+    gap: 12,
+  },
+  ringDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  ringStatLabel: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#000000',
+  },
+  ringStatValue: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#8E8E93',
+  },
+  metricsGrid: {
+    flexDirection: 'row',
     flexWrap: 'wrap',
-  },
-  secondaryButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    backgroundColor: '#f8fbff',
-  },
-  secondaryButtonText: {
-    color: '#0f172a',
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  primaryButton: {
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: '#ff9f1c',
-  },
-  primaryButtonText: {
-    color: '#0a2f19',
-    fontWeight: '800',
-    fontSize: 13,
-  },
-  macroBars: {
-    width: '100%',
-    marginTop: 12,
-    gap: 6,
-  },
-  macroTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#0f172a',
-    marginBottom: 4,
-  },
-  macroRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  macroLabel: {
-    fontSize: 13,
-    color: '#0f172a',
-    fontWeight: '600',
-  },
-  macroValue: {
-    fontSize: 12,
-    color: '#475569',
-  },
-  macroTrack: {
-    height: 10,
-    borderRadius: 10,
-    backgroundColor: '#f1f5f9',
-    overflow: 'hidden',
-  },
-  macroFill: {
-    height: '100%',
-    borderRadius: 10,
-  },
-  heroRow: {
-    flexDirection: 'column',
-    alignItems: 'flex-start',
     gap: 12,
-    marginBottom: 14,
+    marginBottom: 24,
   },
-  heroCopy: {
+  metricCard: {
     flex: 1,
-    gap: 10,
-    paddingVertical: 6,
-  },
-  heroTag: {
-    color: '#e6f6ff',
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 1,
-  },
-  heroTitle: {
-    fontSize: 42,
-    fontWeight: '900',
-    color: '#ffffff',
-    lineHeight: 50,
-  },
-  heroSubtitle: {
-    fontSize: 15,
-    color: '#e6f6ff',
-    opacity: 0.9,
-  },
-  ctaRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 4,
-  },
-  ctaPrimary: {
-    backgroundColor: '#ff9f1c',
-    paddingHorizontal: 18,
-    paddingVertical: 12,
+    minWidth: '47%',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    ...cardShadow,
-  },
-  ctaPrimaryText: {
-    color: '#0a2f19',
-    fontWeight: '800',
-    fontSize: 14,
-  },
-  ctaGhost: {
-    borderColor: '#e6f6ff',
-    borderWidth: 1,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  ctaGhostText: {
-    color: '#e6f6ff',
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  storeRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
-  },
-  storeBadge: {
-    backgroundColor: '#0a2f19',
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    minWidth: 120,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  storeTop: {
-    color: '#c8f8e4',
-    fontSize: 10,
-    opacity: 0.9,
-  },
-  storeBottom: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '800',
-    marginTop: 2,
-  },
-  mockContainer: {
-    flex: 1,
-    width: '100%',
-    backgroundColor: '#f8fbff',
-    borderRadius: 18,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#e0ecf5',
-    ...cardShadow,
-  },
-  mockHeader: {
-    paddingVertical: 6,
-    paddingHorizontal: 4,
-  },
-  mockTabs: {
-    flexDirection: 'row',
+    padding: 16,
     alignItems: 'center',
-    gap: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 6,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
-  mockTab: {
-    alignItems: 'center',
-  },
-  mockTabText: {
-    color: '#64748b',
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  mockTabTextActive: {
-    color: '#f97316',
-  },
-  mockTabUnderline: {
-    marginTop: 4,
-    width: 24,
-    height: 3,
-    backgroundColor: '#f97316',
-    borderRadius: 999,
-  },
-  mockCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 18,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  dietRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eef2f7',
-  },
-  dietIconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-  },
-  dietEmoji: {
-    fontSize: 18,
-  },
-  dietLabel: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1f2937',
-  },
-  mockFooter: {
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  mockHint: {
-    fontSize: 12,
-    color: '#6b7280',
-  },
-  heroCard: {
-    backgroundColor: '#f7fff9',
+  iconCircle: {
+    width: 56,
+    height: 56,
     borderRadius: 28,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#d7f1e2',
-    ...cardShadow,
-  },
-  heroHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  heroTitleSmall: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  heroSubtitleSmall: {
-    fontSize: 14,
-    color: '#475569',
-    marginTop: 4,
-  },
-  badgeRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    maxWidth: '55%',
-    justifyContent: 'flex-end',
-  },
-  badgeChip: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#e7fff2',
-    borderWidth: 1,
-    borderColor: '#8dd9a7',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-  },
-  badgeIcon: {
-    fontSize: 14,
-  },
-  badgeLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  metricGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    rowGap: 16,
-  },
-  metricTile: {
-    width: '48%',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderRadius: 18,
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    ...cardShadow,
-  },
-  metricCircle: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
-    borderWidth: 2,
     justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  metricIconLarge: {
-    fontSize: 24,
-    marginBottom: 4,
+    marginBottom: 12,
   },
   metricValue: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '700',
-    color: '#0f172a',
+    color: '#000000',
+    marginBottom: 2,
   },
   metricUnit: {
-    fontSize: 12,
-    color: '#64748b',
-  },
-  metricLabel: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1f2937',
-  },
-  metricHint: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginTop: 2,
-  },
-  weeklyCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    ...cardShadow,
-  },
-  weeklyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  weekControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  weekButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#f1f5f9',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  weekButtonText: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  weekRange: {
     fontSize: 13,
-    color: '#475569',
-  },
-  weeklyRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-    marginBottom: 10,
-  },
-  weekDayTile: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 14,
-    borderWidth: 2,
-    alignItems: 'center',
-    gap: 6,
-  },
-  weekDayLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  weekDayEmoji: {
-    fontSize: 20,
-  },
-  weekHint: {
-    marginTop: 6,
-    fontSize: 12,
-    color: '#64748b',
-  },
-  sectionCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    ...cardShadow,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  sectionSubtitle: {
-    fontSize: 13,
-    color: '#475569',
-  },
-  sectionLink: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0ea5e9',
-  },
-  quickGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    justifyContent: 'space-between',
-  },
-  quickTile: {
-    width: '30%',
-    borderRadius: 16,
-    paddingVertical: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    backgroundColor: '#f8fbff',
-  },
-  quickIcon: {
-    fontSize: 22,
-    marginBottom: 6,
-  },
-  quickLabel: {
-    fontSize: 13,
-    color: '#0f172a',
-    fontWeight: '700',
-  },
-  muted: {
-    fontSize: 13,
-    color: '#64748b',
-  },
-  notificationCard: {
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 10,
-  },
-  notificationinfo: {
-    backgroundColor: '#f1f5f9',
-    borderWidth: 1,
-    borderColor: 'rgba(59,130,246,0.3)',
-  },
-  notificationwarning: {
-    backgroundColor: '#fff7ed',
-    borderWidth: 1,
-    borderColor: 'rgba(249,115,22,0.5)',
-  },
-  notificationsuccess: {
-    backgroundColor: '#ecfdf3',
-    borderWidth: 1,
-    borderColor: 'rgba(34,197,94,0.45)',
-  },
-  notificationdanger: {
-    backgroundColor: '#fff1f2',
-    borderWidth: 1,
-    borderColor: 'rgba(248,113,113,0.6)',
-  },
-  notificationTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#0f172a',
+    color: '#8E8E93',
     marginBottom: 4,
   },
-  notificationMessage: {
+  metricLabel: {
     fontSize: 13,
-    color: '#475569',
+    fontWeight: '500',
+    color: '#8E8E93',
+    textAlign: 'center',
   },
-  menuGrid: {
+  quickActionsSection: {
+    marginBottom: 24,
+    paddingHorizontal: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#000000',
+    marginBottom: 12,
+    paddingLeft: 4,
+  },
+  quickActionsGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    gap: 12,
+  },
+  quickActionBtn: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 8,
+  },
+  quickActionIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  quickActionLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#000000',
+    textAlign: 'center',
+  },
+  summaryCard: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginBottom: 24,
+    borderRadius: 20,
+    padding: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  cardTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#000000',
+    marginBottom: 16,
+  },
+  summaryRow: {
+    flexDirection: 'row',
     justifyContent: 'space-between',
-    rowGap: 12,
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E5E5EA',
+  },
+  summaryLabel: {
+    fontSize: 15,
+    color: '#000000',
+    fontWeight: '400',
+  },
+  summaryValue: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#8E8E93',
+  },
+  menuSection: {
+    paddingHorizontal: 16,
     marginBottom: 24,
   },
   menuCard: {
-    width: '48%',
-    backgroundColor: '#ffffff',
-    borderRadius: 18,
-    borderLeftWidth: 6,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderColor: '#e2e8f0',
-    borderWidth: 1,
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    ...cardShadow,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 6,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  menuIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
   },
   menuTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  menuEmoji: {
-    fontSize: 24,
-    marginBottom: 6,
-  },
-  menuLink: {
-    fontSize: 13,
-    color: '#0ea5e9',
-    fontWeight: '700',
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
   },
 });
 

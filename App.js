@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { registerRootComponent } from 'expo';
+import { DietProvider } from './context/DietContext';
 
 import AuthHomeScreen from './screens/Auth/AuthHomeScreen';
 import LoginScreenNew from './screens/Auth/LoginScreenNew';
@@ -102,36 +103,39 @@ function App() {
   };
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName="Auth" screenOptions={screenOptions}>
-        {isAuthenticated ? (
-            <>
-              <Stack.Screen name="Main" options={{ headerShown: false }}>
-                {(props) => <MainScreen {...props} onLogout={handleLogout} />}
-              </Stack.Screen>
-              <Stack.Screen name="WaterTracker" component={WaterTrackerScreen} />
-              <Stack.Screen name="PersonalInsights" component={PersonalInsightsScreen} />
-            <Stack.Screen name="DietPlanner" component={DietPlanScreen} />
-            <Stack.Screen name="HealthyRecipes" component={HealthyRecipesScreen} />
-            <Stack.Screen name="GlucoseCalendar" component={GlucoseCalendarScreen} />
-            <Stack.Screen name="StressSleep" component={StressSleepAnalysisScreen} />
-            <Stack.Screen name="BloodSugar" component={BloodSugarScreen} />
-            <Stack.Screen name="VoiceCoach" component={VoiceCoachScreen} />
-            <Stack.Screen name="Profile" component={ProfileScreen} />
-            <Stack.Screen name="IngredientSearch" component={IngredientSearchScreen} />
-            <Stack.Screen name="AddMeal" component={AddMealScreen} options={{ title: 'Yemek Ekle' }} />
-            <Stack.Screen name="FoodCamera" component={FoodCameraScreen} options={{ title: 'Food Camera' }} />
-            <Stack.Screen name="DiabetesInfo" component={DiabetesInfoScreen} />
-            <Stack.Screen name="DoctorReport" component={DoctorReportScreen} />
-            <Stack.Screen name="HealthSync" component={HealthSyncScreen} />
-          </>
-        ) : (
-          <Stack.Screen name="Auth" options={{ headerShown: false }}>
-            {(props) => <AuthStackNavigator {...props} onLogin={handleLogin} />}
-          </Stack.Screen>
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+    <DietProvider>
+      <NavigationContainer>
+        <Stack.Navigator initialRouteName="Auth" screenOptions={screenOptions}>
+          {isAuthenticated ? (
+              <>
+                <Stack.Screen name="Main" options={{ headerShown: false }}>
+                  {(props) => <MainScreen {...props} onLogout={handleLogout} />}
+                </Stack.Screen>
+                <Stack.Screen name="WaterTracker" component={WaterTrackerScreen} options={{ title: 'Su Takibi' }} />
+                <Stack.Screen name="PersonalInsights" component={PersonalInsightsScreen} options={{ title: 'Kişisel İçgörüler' }} />
+                <Stack.Screen name="DietPlanner" component={DietPlanScreen} options={{ title: 'Diyet Planı' }} />
+                <Stack.Screen name="DietPlan" component={DietPlanScreen} options={{ title: 'Diyet Planı' }} />
+                <Stack.Screen name="HealthyRecipes" component={HealthyRecipesScreen} options={{ title: 'Sağlıklı Tarifler' }} />
+                <Stack.Screen name="GlucoseCalendar" component={GlucoseCalendarScreen} options={{ title: 'Glukoz Takvimi' }} />
+                <Stack.Screen name="StressSleep" component={StressSleepAnalysisScreen} options={{ title: 'Stres & Uyku' }} />
+                <Stack.Screen name="BloodSugar" component={BloodSugarScreen} options={{ title: 'Kan Şekeri' }} />
+                <Stack.Screen name="VoiceCoach" component={VoiceCoachScreen} options={{ title: 'Sesli Koç' }} />
+                <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profil' }} />
+                <Stack.Screen name="IngredientSearch" component={IngredientSearchScreen} options={{ title: 'Malzeme Ara' }} />
+                <Stack.Screen name="AddMeal" component={AddMealScreen} options={{ title: 'Yemek Ekle' }} />
+                <Stack.Screen name="FoodCamera" component={FoodCameraScreen} options={{ title: 'Yemek Kamerası' }} />
+                <Stack.Screen name="DiabetesInfo" component={DiabetesInfoScreen} options={{ title: 'Diyabet Bilgisi' }} />
+                <Stack.Screen name="DoctorReport" component={DoctorReportScreen} options={{ title: 'Doktor Raporu' }} />
+                <Stack.Screen name="HealthSync" component={HealthSyncScreen} options={{ title: 'Sağlık Senkronizasyonu' }} />
+            </>
+          ) : (
+            <Stack.Screen name="Auth" options={{ headerShown: false }}>
+              {(props) => <AuthStackNavigator {...props} onLogin={handleLogin} />}
+            </Stack.Screen>
+          )}
+        </Stack.Navigator>
+      </NavigationContainer>
+    </DietProvider>
   );
 }
 

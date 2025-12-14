@@ -1,20 +1,47 @@
 {
   "expo": {
-    "name": "Konusma Terapisi",
-    "slug": "konusma-terapisi",
+    "name": "Diyet Asistanı",
+    "slug": "diyet-asistani",
     "version": "1.0.0",
     "orientation": "portrait",
     "jsEngine": "hermes",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "plugins": [
+      "expo-dev-client"
+    ],
     "android": {
-      "permissions": ["RECORD_AUDIO"],
-      "usesCleartextTraffic": true
+      "permissions": [
+        "RECORD_AUDIO"
+      ],
+      "usesCleartextTraffic": true,
+      "package": "com.acer.diyetasistani"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.acer.diyetasistani",
+      "infoPlist": {
+        "NSHealthShareUsageDescription": "Bu uygulama sağlık verilerinizi okumak için Apple Health'e erişmek istiyor",
+        "NSHealthUpdateUsageDescription": "Bu uygulama sağlık verilerinizi kaydetmek için Apple Health'e yazmak istiyor",
+        "UIBackgroundModes": [
+          "fetch",
+          "fetch"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "entitlements": {
+        "com.apple.developer.healthkit": true,
+        "com.apple.developer.healthkit.access": []
+      }
     },
     "web": {
       "bundler": "metro"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "709a20d3-c896-41a6-91da-fe23b6639aac"
+      }
     }
   }
 }
