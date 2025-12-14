@@ -2,12 +2,14 @@ import React, { useContext, useState } from 'react';
 import { SafeAreaView, ScrollView, Text, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { DietContext } from '../context/DietContext';
+import { useTheme } from '../context/ThemeContext';
 import { PrimaryButton, MealTypeSelector } from '../components/common';
 import { getTodayISO } from '../logic/utils';
 import { styles, colors } from '../styles';
 
 const AddMealScreen = ({ navigation, route }) => {
   const { addMeal } = useContext(DietContext);
+  const { isDarkMode, colors: themeColors } = useTheme();
   const preset = route?.params?.preset || {};
   const [mealType, setMealType] = useState(preset.mealType || 'kahvaltı');
   const [foodName, setFoodName] = useState(preset.foodName || '');
@@ -41,30 +43,30 @@ const AddMealScreen = ({ navigation, route }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <LinearGradient colors={[colors.bgGradientStart, colors.bgGradientEnd]} style={{ flex: 1 }}>
+    <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]}>
+      <LinearGradient colors={isDarkMode ? ['#1C1C1E', '#000000'] : [colors.bgGradientStart, colors.bgGradientEnd]} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.form}>
-          <View style={[styles.card, { marginBottom: 24 }]}>
-            <Text style={styles.title}>Öğün Ekle</Text>
-            <Text style={styles.muted}>Yediğiniz yemeği ve besin değerlerini kaydedin</Text>
+          <View style={[styles.card, { marginBottom: 24, backgroundColor: themeColors.cardBackground }]}>
+            <Text style={[styles.title, { color: themeColors.text }]}>Öğün Ekle</Text>
+            <Text style={[styles.muted, { color: themeColors.secondaryText }]}>Yediğiniz yemeği ve besin değerlerini kaydedin</Text>
           </View>
 
-          <Text style={styles.label}>Öğün Türü</Text>
+          <Text style={[styles.label, { color: themeColors.text }]}>Öğün Türü</Text>
           <MealTypeSelector value={mealType} onChange={setMealType} />
 
-          <Text style={styles.label}>Yemek Adı</Text>
+          <Text style={[styles.label, { color: themeColors.text }]}>Yemek Adı</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: themeColors.cardBackground, color: themeColors.text, borderColor: themeColors.border }]}
             placeholder="Ne yediniz?"
-            placeholderTextColor={colors.textLight}
+            placeholderTextColor={themeColors.secondaryText}
             value={foodName}
             onChangeText={setFoodName}
           />
           {errors.foodName && <Text style={styles.error}>{errors.foodName}</Text>}
 
-          <Text style={styles.label}>Kalori Miktarı</Text>
+          <Text style={[styles.label, { color: themeColors.text }]}>Kalori Miktarı</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: themeColors.cardBackground, color: themeColors.text, borderColor: themeColors.border }]}
             placeholder="Kalori (kcal)"
             placeholderTextColor={colors.textLight}
             keyboardType="numeric"

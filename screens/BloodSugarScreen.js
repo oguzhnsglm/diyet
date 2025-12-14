@@ -8,6 +8,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTheme } from '../context/ThemeContext';
 
 const LATEST_GLUCOSE_STATS_KEY = 'latest_glucose_stats';
 
@@ -35,6 +36,7 @@ function calculateGDE(values) {
 }
 
 export default function BloodSugarScreen() {
+  const { isDarkMode, colors } = useTheme();
   const [fastingInput, setFastingInput] = useState('');
   const [postMealInput, setPostMealInput] = useState('');
   const [otherInput, setOtherInput] = useState('');
@@ -130,27 +132,27 @@ export default function BloodSugarScreen() {
     stats.gde < 30 ? 'Düşük' : stats.gde < 60 ? 'Orta' : 'Yüksek';
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
-      <Text style={styles.title}>Kan Şekeri</Text>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+      <Text style={[styles.title, { color: colors.text }]}>Kan Şekeri</Text>
 
       {/* ANA DAIRE GRAFIK - Ortalama */}
-      <View style={styles.mainCircleCard}>
+      <View style={[styles.mainCircleCard, { backgroundColor: colors.cardBackground }]}>
         <View style={styles.bigCircle}>
-          <Text style={styles.bigCircleValue}>
+          <Text style={[styles.bigCircleValue, { color: colors.text }]}>
             {stats.avg ? stats.avg.toFixed(0) : '--'}
           </Text>
-          <Text style={styles.bigCircleUnit}>mg/dL</Text>
-          <Text style={styles.bigCircleLabel}>Ortalama</Text>
+          <Text style={[styles.bigCircleUnit, { color: colors.secondaryText }]}>mg/dL</Text>
+          <Text style={[styles.bigCircleLabel, { color: colors.secondaryText }]}>Ortalama</Text>
         </View>
       </View>
 
       {/* STATS GRID */}
       <View style={styles.statsGrid}>
-        <View style={styles.statBox}>
-          <Text style={styles.statBoxValue}>
+        <View style={[styles.statBox, { backgroundColor: colors.cardBackground }]}>
+          <Text style={[styles.statBoxValue, { color: colors.text }]}>
             {stats.fasting ? stats.fasting.toFixed(0) : '-'}
           </Text>
-          <Text style={styles.statBoxLabel}>Açlık</Text>
+          <Text style={[styles.statBoxLabel, { color: colors.secondaryText }]}>Açlık</Text>
         </View>
         <View style={styles.statBox}>
           <Text style={styles.statBoxValue}>

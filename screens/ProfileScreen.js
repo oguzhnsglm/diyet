@@ -4,6 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DietContext } from '../context/DietContext';
+import { useTheme } from '../context/ThemeContext';
 import { PrimaryButton } from '../components/common';
 import { calculateBMI, healthyWeightRange, getTodayISO } from '../logic/utils';
 import { styles, colors } from '../styles';
@@ -22,11 +23,11 @@ const fallbackUser = {
 
 const ProfileScreen = () => {
   const { user, setUser, reloadUser } = useContext(DietContext);
+  const { isDarkMode, toggleTheme, colors } = useTheme();
   const [weight, setWeight] = useState('');
   const [targetWeight, setTargetWeight] = useState('');
   const [dailyCalories, setDailyCalories] = useState('');
   const [dailySugar, setDailySugar] = useState('');
-  const [appTheme, setAppTheme] = useState('dark');
   const [glucoseStats, setGlucoseStats] = useState({ value: null, time: null });
   const [rewardStatus, setRewardStatus] = useState({ diet: false, glucose: false, activity: false });
 
@@ -176,13 +177,13 @@ const ProfileScreen = () => {
     : 'Rozeti almak için üç görevi de işaretle. Motivasyonu diri tutmak için hatırlatıcı.';
 
   return (
-    <SafeAreaView style={profileStyles.container}>
-      <LinearGradient colors={['#fdfcfb', '#e2ebf0']} style={{ flex: 1 }}>
+    <SafeAreaView style={[profileStyles.container, { backgroundColor: colors.background }]}>
+      <LinearGradient colors={isDarkMode ? ['#1C1C1E', '#000000'] : ['#fdfcfb', '#e2ebf0']} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={profileStyles.content}>
-          <View style={profileStyles.headerCard}>
-            <Text style={profileStyles.headerLabel}>Profile</Text>
-            <Text style={profileStyles.headerName}>{activeUser.name}</Text>
-            <Text style={profileStyles.headerSub}>Sağlık verilerin tek ekranda</Text>
+          <View style={[profileStyles.headerCard, { backgroundColor: isDarkMode ? '#2C2C2E' : '#FFFFFF' }]}>
+            <Text style={[profileStyles.headerLabel, { color: colors.secondaryText }]}>Profile</Text>
+            <Text style={[profileStyles.headerName, { color: colors.text }]}>{activeUser.name}</Text>
+            <Text style={[profileStyles.headerSub, { color: colors.secondaryText }]}>Sağlık verilerin tek ekranda</Text>
           </View>
 
           <View style={profileStyles.metricRow}>
@@ -298,20 +299,22 @@ const ProfileScreen = () => {
               <Text style={profileStyles.buttonSubtitle}>Arayüz temasını seç</Text>
             </View>
             <View style={profileStyles.themeRow}>
-              {themeOptions.map(option => {
-                const active = appTheme === option.id;
-                return (
-                  <Pressable
-                    key={option.id}
-                    style={[profileStyles.themeTile, active && profileStyles.themeTileActive]}
-                    onPress={() => setAppTheme(option.id)}
-                  >
-                    <Text style={profileStyles.themeEmoji}>{option.emoji}</Text>
-                    <Text style={profileStyles.themeLabel}>{option.label}</Text>
-                    <Text style={profileStyles.themeHint}>{option.description}</Text>
-                  </Pressable>
-                );
-              })}
+              <Pressable
+                style={[profileStyles.themeTile, !isDarkMode && profileStyles.themeTileActive]}
+                onPress={() => !isDarkMode ? null : toggleTheme()}
+              >
+                <Text style={profileStyles.themeEmoji}>🌤️</Text>
+                <Text style={profileStyles.themeLabel}>Açık</Text>
+                <Text style={profileStyles.themeHint}>Daha parlak arayüz</Text>
+              </Pressable>
+              <Pressable
+                style={[profileStyles.themeTile, isDarkMode && profileStyles.themeTileActive]}
+                onPress={() => isDarkMode ? null : toggleTheme()}
+              >
+                <Text style={profileStyles.themeEmoji}>🌙</Text>
+                <Text style={profileStyles.themeLabel}>Koyu</Text>
+                <Text style={profileStyles.themeHint}>Göz yormayan mod</Text>
+              </Pressable>
             </View>
           </View>
 

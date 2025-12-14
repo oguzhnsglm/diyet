@@ -28,6 +28,7 @@ const MainScreen = ({ navigation }) => {
   const { isDarkMode, toggleTheme, colors } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
   const [waterCount, setWaterCount] = useState(0);
+  const [urineCount, setUrineCount] = useState(0);
   const [stepsCount, setStepsCount] = useState(5847);
   const [caloriesConsumed, setCaloriesConsumed] = useState(1240);
   const [activeMinutes, setActiveMinutes] = useState(32);
@@ -38,6 +39,20 @@ const MainScreen = ({ navigation }) => {
   const CALORIE_GOAL = 2000;
   const STEPS_GOAL = 10000;
   const WATER_GOAL = 8;
+
+  // İdrar sayacını yükle
+  useEffect(() => {
+    const loadUrineCount = async () => {
+      try {
+        const { default: AsyncStorage } = await import('@react-native-async-storage/async-storage');
+        const stored = await AsyncStorage.getItem('urineCount');
+        if (stored) setUrineCount(parseInt(stored));
+      } catch (error) {
+        console.log('İdrar verisi yüklenemedi:', error);
+      }
+    };
+    loadUrineCount();
+  }, []);
 
   // Apple Health'i başlat
   useEffect(() => {
@@ -117,6 +132,21 @@ const MainScreen = ({ navigation }) => {
       }
     } else {
       console.log('💧 Su tüketimi:', newCount, 'bardak');
+    }
+  };
+
+  // İdrar kaydı ekle
+  const handleUrinePress = async () => {
+    const newCount = urineCount + 1;
+    setUrineCount(newCount);
+    
+    // AsyncStorage'a kaydet
+    try {
+      const { default: AsyncStorage } = await import('@react-native-async-storage/async-storage');
+      await AsyncStorage.setItem('urineCount', newCount.toString());
+      console.log('🚽 İdrar kaydı:', newCount);
+    } catch (error) {
+      console.log('⚠️ İdrar kaydedilemedi:', error);
     }
   };
 
@@ -231,6 +261,15 @@ const MainScreen = ({ navigation }) => {
             colors={colors}
           />
           <MetricCard
+            icon="urine"
+            value={urineCount}
+            unit="kez"
+            label="İdrar"
+            color="#FF9500"
+            onPress={handleUrinePress}
+            colors={colors}
+          />
+          <MetricCard
             icon="steps"
             value={stepsCount.toLocaleString()}
             unit="adım"
@@ -275,10 +314,10 @@ const MainScreen = ({ navigation }) => {
               colors={colors}
             />
             <QuickActionButton
-              icon="exercise"
-              label="Egzersiz"
-              color="#32D74B"
-              onPress={() => {}}
+              icon="urine"
+              label="İdrar Takibi"
+              color="#FF9500"
+              onPress={() => navigation.navigate('UrineTracker')}
               colors={colors}
             />
             <QuickActionButton
@@ -344,6 +383,7 @@ const MainScreen = ({ navigation }) => {
 const HealthIcon = ({ name, size = 24, color = '#000' }) => {
   const iconPaths = {
     water: "M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z",
+    urine: "M12 3c-1.1 0-2 .9-2 2v7c0 2.76 2.24 5 5 5h2v2h-2v2h2c1.1 0 2-.9 2-2v-2h1v-2h-1v-1c0-1.1-.9-2-2-2h-3c-.55 0-1-.45-1-1V5c0-1.1-.9-2-2-2zm-5 9v2c0 2.21 1.79 4 4 4h1v2H9c-3.31 0-6-2.69-6-6v-2h4z",
     steps: "M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7",
     heart: "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z",
     sleep: "M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z",
@@ -411,10 +451,6 @@ const ActivityRings = ({ rings }) => {
 
 // Metric Card Component
 const MetricCard = ({ icon, value, unit, label, color, onPress, goal, colors }) => {
-  const isWater = icon === 'water';
-  const progress = isWater && goal ? Math.min(value / goal, 1) : null;
-  const extraProgress = isWater && goal && value > goal ? (value - goal) / goal : 0;
-  
   return (
     <Pressable style={[styles.metricCard, { backgroundColor: colors?.cardBackground || '#FFFFFF' }]} onPress={onPress}>
       <View style={[styles.iconCircle, { backgroundColor: color }]}>
@@ -423,36 +459,6 @@ const MetricCard = ({ icon, value, unit, label, color, onPress, goal, colors }) 
       <Text style={[styles.metricValue, { color: colors?.text || '#000000' }]}>{value}</Text>
       {unit ? <Text style={[styles.metricUnit, { color: colors?.secondaryText || '#8E8E93' }]}>{unit}</Text> : null}
       <Text style={[styles.metricLabel, { color: colors?.secondaryText || '#8E8E93' }]}>{label}</Text>
-      
-      {/* Su takibi için özel progress bar */}
-      {isWater && progress !== null && (
-        <View style={styles.waterProgressContainer}>
-          <View style={styles.waterProgressTrack}>
-            {/* İlk 8 bardak - açık mavi */}
-            <View 
-              style={[
-                styles.waterProgressFill,
-                { 
-                  width: `${progress * 100}%`,
-                  backgroundColor: color
-                }
-              ]} 
-            />
-            {/* 8'den sonraki bardaklar - koyu mavi */}
-            {value > goal && (
-              <View 
-                style={[
-                  styles.waterProgressExtra,
-                  { 
-                    width: `${Math.min(extraProgress * 100, 100)}%`,
-                    backgroundColor: '#0055CC' // Daha koyu mavi
-                  }
-                ]} 
-              />
-            )}
-          </View>
-        </View>
-      )}
     </Pressable>
   );
 };
@@ -577,11 +583,11 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   metricCard: {
-    flex: 1,
-    minWidth: '47%',
+    width: '31%',
+    minWidth: 100,
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 16,
+    padding: 12,
     alignItems: 'center',
     ...Platform.select({
       ios: {

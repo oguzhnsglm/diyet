@@ -34,6 +34,7 @@ import PersonalInsightsScreen from './screens/PersonalInsightsScreen';
 import DoctorReportScreen from './screens/DoctorReportScreen';
 import HealthSyncScreen from './screens/HealthSyncScreen';
 import LibreStatsScreen from './screens/LibreStatsScreen';
+import UrineTrackerScreen from './screens/UrineTrackerScreen';
 
 const Stack = createNativeStackNavigator();
 const AuthStack = createNativeStackNavigator();
@@ -131,6 +132,7 @@ function App() {
                 <Stack.Screen name="DoctorReport" component={DoctorReportScreen} options={{ title: 'Doktor Raporu' }} />
                 <Stack.Screen name="HealthSync" component={HealthSyncScreen} options={{ title: 'Sağlık Senkronizasyonu' }} />
                 <Stack.Screen name="LibreStats" component={LibreStatsScreen} options={{ title: 'İstatistikler' }} />
+                <Stack.Screen name="UrineTracker" component={UrineTrackerScreen} options={{ title: 'İdrar Takibi' }} />
             </>
           ) : (
             <Stack.Screen name="Auth" options={{ headerShown: false }}>

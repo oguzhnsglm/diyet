@@ -1,7 +1,9 @@
 import React, { useMemo } from 'react';
 import { SafeAreaView, View, Text, StyleSheet, ScrollView } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
 
 const LibreStatsScreen = () => {
+  const { isDarkMode, colors } = useTheme();
   const dailyTrends = useMemo(
     () => [
       { id: 'mon', label: 'Mon', avg: 108, min: 85, max: 132 },
@@ -26,36 +28,36 @@ const LibreStatsScreen = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
           <View style={styles.headerRow}>
-            <Text style={styles.title}>FreeStyle Libre</Text>
-            <Text style={styles.subtitle}>Last sync 10 mins ago</Text>
+            <Text style={[styles.title, { color: colors.text }]}>FreeStyle Libre</Text>
+            <Text style={[styles.subtitle, { color: colors.secondaryText }]}>Last sync 10 mins ago</Text>
           </View>
           <View style={styles.metricRow}>
             {metrics.map(item => (
               <View key={item.label} style={styles.metricBox}>
-                <Text style={styles.metricLabel}>{item.label}</Text>
-                <Text style={styles.metricValue}>{item.value}</Text>
+                <Text style={[styles.metricLabel, { color: colors.secondaryText }]}>{item.label}</Text>
+                <Text style={[styles.metricValue, { color: colors.text }]}>{item.value}</Text>
               </View>
             ))}
           </View>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Daily trend</Text>
+        <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Daily trend</Text>
           <View style={styles.tableHeader}>
-            <Text style={[styles.cell, styles.cellHeader]}>Day</Text>
-            <Text style={[styles.cell, styles.cellHeader]}>Avg</Text>
-            <Text style={[styles.cell, styles.cellHeader]}>Min</Text>
-            <Text style={[styles.cell, styles.cellHeader]}>Max</Text>
+            <Text style={[styles.cell, styles.cellHeader, { color: colors.text }]}>Day</Text>
+            <Text style={[styles.cell, styles.cellHeader, { color: colors.text }]}>Avg</Text>
+            <Text style={[styles.cell, styles.cellHeader, { color: colors.text }]}>Min</Text>
+            <Text style={[styles.cell, styles.cellHeader, { color: colors.text }]}>Max</Text>
           </View>
           {dailyTrends.map(row => (
             <View key={row.id} style={styles.tableRow}>
-              <Text style={styles.cell}>{row.label}</Text>
-              <Text style={styles.cell}>{row.avg} mg/dL</Text>
-              <Text style={styles.cell}>{row.min} mg/dL</Text>
+              <Text style={[styles.cell, { color: colors.text }]}>{row.label}</Text>
+              <Text style={[styles.cell, { color: colors.text }]}>{row.avg} mg/dL</Text>
+              <Text style={[styles.cell, { color: colors.text }]}>{row.min} mg/dL</Text>
               <Text style={styles.cell}>{row.max} mg/dL</Text>
             </View>
           ))}
