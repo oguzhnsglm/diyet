@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { registerRootComponent } from 'expo';
 import { DietProvider } from './context/DietContext';
+import { ThemeProvider } from './context/ThemeContext';
 
 import AuthHomeScreen from './screens/Auth/AuthHomeScreen';
 import LoginScreenNew from './screens/Auth/LoginScreenNew';
@@ -32,6 +33,7 @@ import DiabetesInfoScreen from './screens/DiabetesInfoScreen';
 import PersonalInsightsScreen from './screens/PersonalInsightsScreen';
 import DoctorReportScreen from './screens/DoctorReportScreen';
 import HealthSyncScreen from './screens/HealthSyncScreen';
+import LibreStatsScreen from './screens/LibreStatsScreen';
 
 const Stack = createNativeStackNavigator();
 const AuthStack = createNativeStackNavigator();
@@ -103,8 +105,9 @@ function App() {
   };
 
   return (
-    <DietProvider>
-      <NavigationContainer>
+    <ThemeProvider>
+      <DietProvider>
+        <NavigationContainer>
         <Stack.Navigator initialRouteName="Auth" screenOptions={screenOptions}>
           {isAuthenticated ? (
               <>
@@ -127,6 +130,7 @@ function App() {
                 <Stack.Screen name="DiabetesInfo" component={DiabetesInfoScreen} options={{ title: 'Diyabet Bilgisi' }} />
                 <Stack.Screen name="DoctorReport" component={DoctorReportScreen} options={{ title: 'Doktor Raporu' }} />
                 <Stack.Screen name="HealthSync" component={HealthSyncScreen} options={{ title: 'Sağlık Senkronizasyonu' }} />
+                <Stack.Screen name="LibreStats" component={LibreStatsScreen} options={{ title: 'İstatistikler' }} />
             </>
           ) : (
             <Stack.Screen name="Auth" options={{ headerShown: false }}>
@@ -134,8 +138,9 @@ function App() {
             </Stack.Screen>
           )}
         </Stack.Navigator>
-      </NavigationContainer>
-    </DietProvider>
+        </NavigationContainer>
+      </DietProvider>
+    </ThemeProvider>
   );
 }
 
