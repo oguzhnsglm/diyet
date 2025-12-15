@@ -9,6 +9,9 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
+import BottomNavBar from '../components/BottomNavBar';
+import BackButton from '../components/BackButton';
 
 const LATEST_GLUCOSE_STATS_KEY = 'latest_glucose_stats';
 
@@ -35,8 +38,9 @@ function calculateGDE(values) {
   return score;
 }
 
-export default function BloodSugarScreen() {
+function BloodSugarScreen({ navigation }) {
   const { isDarkMode, colors } = useTheme();
+  const { t } = useLanguage();
   const [fastingInput, setFastingInput] = useState('');
   const [postMealInput, setPostMealInput] = useState('');
   const [otherInput, setOtherInput] = useState('');
@@ -133,16 +137,20 @@ export default function BloodSugarScreen() {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
-      <Text style={[styles.title, { color: colors.text }]}>Kan Şekeri</Text>
+      <View style={styles.headerRow}>
+        <BackButton navigation={navigation} />
+        <Text style={[styles.title, { color: colors.text }]}>{t('common.bloodSugar')}</Text>
+        <View style={{ width: 40 }} />
+      </View>
 
       {/* ANA DAIRE GRAFIK - Ortalama */}
       <View style={[styles.mainCircleCard, { backgroundColor: colors.cardBackground }]}>
-        <View style={styles.bigCircle}>
+        <View style={[styles.bigCircle, { backgroundColor: isDarkMode ? '#2C2C2E' : '#F8FAFC' }]}>
           <Text style={[styles.bigCircleValue, { color: colors.text }]}>
             {stats.avg ? stats.avg.toFixed(0) : '--'}
           </Text>
           <Text style={[styles.bigCircleUnit, { color: colors.secondaryText }]}>mg/dL</Text>
-          <Text style={[styles.bigCircleLabel, { color: colors.secondaryText }]}>Ortalama</Text>
+          <Text style={[styles.bigCircleLabel, { color: colors.secondaryText }]}>{t('bloodSugarScreen.average')}</Text>
         </View>
       </View>
 
@@ -152,40 +160,41 @@ export default function BloodSugarScreen() {
           <Text style={[styles.statBoxValue, { color: colors.text }]}>
             {stats.fasting ? stats.fasting.toFixed(0) : '-'}
           </Text>
-          <Text style={[styles.statBoxLabel, { color: colors.secondaryText }]}>Açlık</Text>
+          <Text style={[styles.statBoxLabel, { color: colors.secondaryText }]}>{t('bloodSugarScreen.fasting')}</Text>
         </View>
-        <View style={styles.statBox}>
-          <Text style={styles.statBoxValue}>
+        <View style={[styles.statBox, { backgroundColor: colors.cardBackground }]}>
+          <Text style={[styles.statBoxValue, { color: colors.text }]}>
             {stats.postMeal ? stats.postMeal.toFixed(0) : '-'}
           </Text>
-          <Text style={styles.statBoxLabel}>Tokluk</Text>
+          <Text style={[styles.statBoxLabel, { color: colors.secondaryText }]}>{t('bloodSugarScreen.postMeal')}</Text>
         </View>
       </View>
 
       {/* A1C & GDE GRID */}
       <View style={styles.statsGrid}>
-        <View style={styles.statBox}>
-          <Text style={styles.statBoxValue}>
+        <View style={[styles.statBox, { backgroundColor: colors.cardBackground }]}>
+          <Text style={[styles.statBoxValue, { color: colors.text }]}>
             {stats.a1c.min}–{stats.a1c.max}%
           </Text>
-          <Text style={styles.statBoxLabel}>Tahmini A1C</Text>
+          <Text style={[styles.statBoxLabel, { color: colors.secondaryText }]}>{t('bloodSugarScreen.estimatedA1C')}</Text>
         </View>
-        <View style={styles.statBox}>
-          <Text style={styles.statBoxValue}>{stats.gde}</Text>
-          <Text style={styles.statBoxLabel}>GDE · {riskLabel}</Text>
+        <View style={[styles.statBox, { backgroundColor: colors.cardBackground }]}>
+          <Text style={[styles.statBoxValue, { color: colors.text }]}>{stats.gde}</Text>
+          <Text style={[styles.statBoxLabel, { color: colors.secondaryText }]}>GDE · {riskLabel}</Text>
         </View>
       </View>
 
       {/* ÖLÇÜM EKLEME ALANI */}
-      <Text style={styles.sectionTitle}>Ölçüm Ekle</Text>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('bloodSugarScreen.addMeasurement')}</Text>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>🌅 Açlık</Text>
+        <Text style={[styles.inputLabel, { color: colors.text }]}>🌅 {t('bloodSugarScreen.fasting')}</Text>
         <View style={styles.inputRow}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.cardBackground, color: colors.text, borderColor: colors.border }]}
             keyboardType="numeric"
             placeholder="95"
+            placeholderTextColor={colors.secondaryText}
             value={fastingInput}
             onChangeText={setFastingInput}
           />
@@ -199,12 +208,13 @@ export default function BloodSugarScreen() {
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>🍽️ Tokluk</Text>
+        <Text style={[styles.inputLabel, { color: colors.text }]}>🍽️ {t('bloodSugarScreen.postMeal')}</Text>
         <View style={styles.inputRow}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.cardBackground, color: colors.text, borderColor: colors.border }]}
             keyboardType="numeric"
             placeholder="145"
+            placeholderTextColor={colors.secondaryText}
             value={postMealInput}
             onChangeText={setPostMealInput}
           />
@@ -218,12 +228,13 @@ export default function BloodSugarScreen() {
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>📊 Diğer</Text>
+        <Text style={[styles.inputLabel, { color: colors.text }]}>📊 {t('bloodSugarScreen.other')}</Text>
         <View style={styles.inputRow}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.cardBackground, color: colors.text, borderColor: colors.border }]}
             keyboardType="numeric"
             placeholder="180"
+            placeholderTextColor={colors.secondaryText}
             value={otherInput}
             onChangeText={setOtherInput}
           />
@@ -237,19 +248,19 @@ export default function BloodSugarScreen() {
       </View>
 
       {/* LİSTE */}
-      <Text style={styles.sectionTitle}>Son Ölçümler</Text>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>Son Ölçümler</Text>
       {measurements.length === 0 ? (
-        <Text style={styles.emptyText}>Henüz ölçüm yok</Text>
+        <Text style={[styles.emptyText, { color: colors.secondaryText }]}>Henüz ölçüm yok</Text>
       ) : (
         measurements.map(m => (
-          <View key={m.id} style={styles.measureItem}>
+          <View key={m.id} style={[styles.measureItem, { backgroundColor: colors.cardBackground }]}>
             <View>
-              <Text style={styles.measureValue}>{m.value} mg/dL</Text>
-              <Text style={styles.measureType}>
+              <Text style={[styles.measureValue, { color: colors.text }]}>{m.value} mg/dL</Text>
+              <Text style={[styles.measureType, { color: colors.secondaryText }]}>
                 {m.type === 'fasting' ? '🌅 Açlık' : m.type === 'postMeal' ? '🍽️ Tokluk' : '📊 Diğer'}
               </Text>
             </View>
-            <Text style={styles.measureTime}>
+            <Text style={[styles.measureTime, { color: colors.secondaryText }]}>
               {m.time.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
             </Text>
           </View>
@@ -262,24 +273,27 @@ export default function BloodSugarScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFBFC',
     padding: 24,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    marginTop: 8,
   },
   title: {
     fontSize: 34,
     fontWeight: '800',
-    color: '#0F172A',
-    marginBottom: 32,
+    flex: 1,
+    textAlign: 'center',
     letterSpacing: -0.5,
   },
   mainCircleCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 28,
     padding: 40,
     marginBottom: 24,
-    shadowColor: '#1E293B',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
     shadowRadius: 16,
     elevation: 4,
     alignItems: 'center',
@@ -288,7 +302,6 @@ const styles = StyleSheet.create({
     width: 220,
     height: 220,
     borderRadius: 110,
-    backgroundColor: '#F8FAFC',
     borderWidth: 16,
     borderColor: '#3B82F6',
     justifyContent: 'center',
@@ -302,20 +315,17 @@ const styles = StyleSheet.create({
   bigCircleValue: {
     fontSize: 68,
     fontWeight: '800',
-    color: '#0F172A',
     lineHeight: 68,
     letterSpacing: -1.5,
   },
   bigCircleUnit: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#64748B',
     marginTop: 4,
     letterSpacing: 0.3,
   },
   bigCircleLabel: {
     fontSize: 14,
-    color: '#94A3B8',
     marginTop: 10,
     fontWeight: '600',
     letterSpacing: 0.2,
@@ -327,26 +337,21 @@ const styles = StyleSheet.create({
   },
   statBox: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
     borderRadius: 24,
     padding: 24,
     alignItems: 'center',
-    shadowColor: '#1E293B',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
     shadowRadius: 12,
     elevation: 2,
   },
   statBoxValue: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#0F172A',
     marginBottom: 8,
     letterSpacing: -0.5,
   },
   statBoxLabel: {
     fontSize: 13,
-    color: '#94A3B8',
     fontWeight: '600',
     textAlign: 'center',
     letterSpacing: 0.2,
@@ -354,7 +359,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#0F172A',
     marginTop: 24,
     marginBottom: 16,
     letterSpacing: -0.3,
@@ -365,7 +369,6 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1E293B',
     marginBottom: 10,
     letterSpacing: -0.1,
   },
@@ -375,16 +378,11 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 18,
     fontSize: 17,
-    color: '#0F172A',
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    shadowColor: '#1E293B',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
     shadowRadius: 4,
     elevation: 1,
   },
@@ -407,7 +405,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 15,
-    color: '#94A3B8',
     textAlign: 'center',
     marginTop: 24,
     fontWeight: '500',
@@ -416,31 +413,36 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 20,
     marginBottom: 12,
-    shadowColor: '#1E293B',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
   },
   measureValue: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#0F172A',
     marginBottom: 4,
     letterSpacing: -0.3,
   },
   measureType: {
     fontSize: 14,
-    color: '#64748B',
     fontWeight: '500',
   },
   measureTime: {
     fontSize: 15,
-    color: '#94A3B8',
     fontWeight: '600',
   },
 });
+
+function BloodSugarScreenWithNav({ navigation }) {
+  return (
+    <>
+      <BloodSugarScreen navigation={navigation} />
+      <BottomNavBar navigation={navigation} activeKey="BloodSugar" />
+    </>
+  );
+}
+
+export default BloodSugarScreenWithNav;

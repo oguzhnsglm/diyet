@@ -2,6 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { SafeAreaView, ScrollView, Text, View, Pressable, TextInput, Alert, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme } from '../context/ThemeContext';
+import BottomNavBar from '../components/BottomNavBar';
+import BackButton from '../components/BackButton';
 
 const PLAN_KEY = '@diyetPlan';
 
@@ -15,20 +18,71 @@ const MEAL_SLOTS = [
 ];
 
 const FOOD_LIBRARY = [
-  { id: 'oat08', name: 'Yulaf lapası (1 porsiyon)', calories: 220 },
-  { id: 'egg02', name: 'Haşlanmış yumurta', calories: 78 },
-  { id: 'avocado', name: 'Avokado dilimi', calories: 60 },
-  { id: 'almond10', name: '10 adet çiğ badem', calories: 70 },
-  { id: 'apple', name: 'Elma', calories: 95 },
-  { id: 'salad', name: 'Zeytinyağlı salata', calories: 120 },
-  { id: 'kinoa', name: 'Kinoa tabak', calories: 210 },
-  { id: 'chicken', name: 'Izgara tavuk (150g)', calories: 240 },
-  { id: 'soup', name: 'Mercimek çorbası', calories: 150 },
-  { id: 'yogurt', name: 'Yoğurt + chia', calories: 110 },
-  { id: 'darkchoco', name: 'Bitter çikolata (20g)', calories: 120 },
-  { id: 'nutsmix', name: 'Küçük kuru yemiş', calories: 140 },
-  { id: 'protein', name: 'Protein shake', calories: 180 },
-  { id: 'fruitbowl', name: '3 meyveli kase', calories: 160 },
+  // Kahvaltılıklar
+  { id: 'egg01', name: 'Yumurta (1 adet)', calories: 80, category: 'Kahvaltı' },
+  { id: 'egg02', name: 'Haşlanmış yumurta', calories: 78, category: 'Kahvaltı' },
+  { id: 'egg03', name: 'Sahanda yumurta', calories: 95, category: 'Kahvaltı' },
+  { id: 'omlet', name: 'Omlet (2 yumurta)', calories: 154, category: 'Kahvaltı' },
+  { id: 'menemen', name: 'Menemen (1 porsiyon)', calories: 150, category: 'Kahvaltı' },
+  { id: 'peynir', name: 'Peynir (30g)', calories: 100, category: 'Kahvaltı' },
+  { id: 'beyazpeynir', name: 'Beyaz peynir (30g)', calories: 75, category: 'Kahvaltı' },
+  { id: 'kasar', name: 'Kaşar peyniri (30g)', calories: 113, category: 'Kahvaltı' },
+  { id: 'zeytin', name: 'Zeytin (10 adet)', calories: 45, category: 'Kahvaltı' },
+  { id: 'ekmek', name: 'Ekmek (1 dilim)', calories: 70, category: 'Kahvaltı' },
+  { id: 'kepekliekmek', name: 'Kepekli ekmek (1 dilim)', calories: 65, category: 'Kahvaltı' },
+  { id: 'simit', name: 'Simit (1 adet)', calories: 280, category: 'Kahvaltı' },
+  { id: 'borek', name: 'Börek (1 dilim)', calories: 250, category: 'Kahvaltı' },
+  { id: 'pogaca', name: 'Poğaça (1 adet)', calories: 290, category: 'Kahvaltı' },
+  { id: 'oat', name: 'Yulaf lapası (1 porsiyon)', calories: 220, category: 'Kahvaltı' },
+  { id: 'bal', name: 'Bal (1 ykaş)', calories: 64, category: 'Kahvaltı' },
+  { id: 'recel', name: 'Reçel (1 ykaş)', calories: 50, category: 'Kahvaltı' },
+  
+  // Ana Yemekler
+  { id: 'pilav', name: 'Pilav (1 porsiyon)', calories: 200, category: 'Ana Yemek' },
+  { id: 'bulgurpilav', name: 'Bulgur pilavı (1 porsiyon)', calories: 180, category: 'Ana Yemek' },
+  { id: 'makarna', name: 'Makarna (1 porsiyon)', calories: 220, category: 'Ana Yemek' },
+  { id: 'tavuk', name: 'Izgara tavuk (150g)', calories: 240, category: 'Ana Yemek' },
+  { id: 'kofte', name: 'Köfte (3 adet)', calories: 290, category: 'Ana Yemek' },
+  { id: 'somon', name: 'Fırında somon (150g)', calories: 380, category: 'Ana Yemek' },
+  { id: 'kebap', name: 'Kebap (1 porsiyon)', calories: 420, category: 'Ana Yemek' },
+  { id: 'kuru fasulye', name: 'Kuru fasulye (1 porsiyon)', calories: 280, category: 'Ana Yemek' },
+  { id: 'mercimek', name: 'Mercimek yemeği (1 porsiyon)', calories: 250, category: 'Ana Yemek' },
+  { id: 'tavukdoner', name: 'Tavuk döner (1 porsiyon)', calories: 350, category: 'Ana Yemek' },
+  
+  // Çorbalar
+  { id: 'mercimekcorba', name: 'Mercimek çorbası', calories: 150, category: 'Çorba' },
+  { id: 'domates corba', name: 'Domates çorbası', calories: 130, category: 'Çorba' },
+  { id: 'tarhana', name: 'Tarhana çorbası', calories: 180, category: 'Çorba' },
+  { id: 'ezogelin', name: 'Ezogelin çorbası', calories: 160, category: 'Çorba' },
+  
+  // Salatalar
+  { id: 'salata', name: 'Yeşil salata', calories: 50, category: 'Salata' },
+  { id: 'cобансалата', name: 'Çoban salata', calories: 80, category: 'Salata' },
+  { id: 'roka', name: 'Roka salatası', calories: 60, category: 'Salata' },
+  { id: 'kinoa salata', name: 'Kinoa salatası', calories: 210, category: 'Salata' },
+  
+  // Zeytinyağlılar
+  { id: 'fasulye', name: 'Zeytinyağlı taze fasulye', calories: 110, category: 'Zeytinyağlı' },
+  { id: 'enginar', name: 'Zeytinyağlı enginar', calories: 120, category: 'Zeytinyağlı' },
+  { id: 'yaprak sarma', name: 'Yaprak sarma (3 adet)', calories: 140, category: 'Zeytinyağlı' },
+  
+  // Meyveler
+  { id: 'elma', name: 'Elma (1 adet)', calories: 95, category: 'Meyve' },
+  { id: 'muz', name: 'Muz (1 adet)', calories: 105, category: 'Meyve' },
+  { id: 'portakal', name: 'Portakal (1 adet)', calories: 62, category: 'Meyve' },
+  { id: 'armut', name: 'Armut (1 adet)', calories: 102, category: 'Meyve' },
+  { id: 'karpuz', name: 'Karpuz (1 dilim)', calories: 85, category: 'Meyve' },
+  { id: 'uzum', name: 'Üzüm (1 salkm)', calories: 110, category: 'Meyve' },
+  
+  // Atıştırmalıklar
+  { id: 'yogurt', name: 'Yoğurt (1 kase)', calories: 110, category: 'Atıştırmalık' },
+  { id: 'badem', name: 'Badem (10 adet)', calories: 70, category: 'Atıştırmalık' },
+  { id: 'ceviz', name: 'Ceviz (5 adet)', calories: 90, category: 'Atıştırmalık' },
+  { id: 'findik', name: 'Fındık (10 adet)', calories: 88, category: 'Atıştırmalık' },
+  { id: 'havuc', name: 'Havuç (1 adet)', calories: 41, category: 'Atıştırmalık' },
+  { id: 'salatalik', name: 'Salatalık (1 adet)', calories: 16, category: 'Atıştırmalık' },
+  { id: 'protein', name: 'Protein shake', calories: 180, category: 'Atıştırmalık' },
+  { id: 'bitter', name: 'Bitter çikolata (20g)', calories: 120, category: 'Atıştırmalık' },
 ];
 
 const GOAL_OPTIONS = [
@@ -40,16 +94,29 @@ const GOAL_OPTIONS = [
   { value: 'tip2', label: 'Tip 2 diyabet' },
 ];
 
-const ensureEntryShape = (entries = {}) => {
+const getMealSlots = (mealCount = 6) => {
+  if (mealCount === 3) {
+    return [MEAL_SLOTS[0], MEAL_SLOTS[2], MEAL_SLOTS[4]]; // Kahvaltı, Öğle, Akşam
+  } else if (mealCount === 4) {
+    return [MEAL_SLOTS[0], MEAL_SLOTS[1], MEAL_SLOTS[2], MEAL_SLOTS[4]]; // + Sabah ara
+  } else if (mealCount === 5) {
+    return [MEAL_SLOTS[0], MEAL_SLOTS[1], MEAL_SLOTS[2], MEAL_SLOTS[3], MEAL_SLOTS[4]]; // + İkindi ara
+  }
+  return MEAL_SLOTS; // 6 öğün (hepsi)
+};
+
+const ensureEntryShape = (entries = {}, mealCount = 6) => {
   const normalized = {};
-  MEAL_SLOTS.forEach((slot) => {
+  const slots = getMealSlots(mealCount);
+  slots.forEach((slot) => {
     normalized[slot.id] = Array.isArray(entries[slot.id]) ? [...entries[slot.id]] : [];
   });
   return normalized;
 };
 
-const buildPlanStructure = (kalori, amacValue, existingEntries = {}) => {
-  const meals = MEAL_SLOTS.map((slot) => ({
+const buildPlanStructure = (kalori, amacValue, mealCount = 6, existingEntries = {}) => {
+  const activeSlots = getMealSlots(mealCount);
+  const meals = activeSlots.map((slot) => ({
     id: slot.id,
     label: slot.label,
     window: slot.window,
@@ -58,8 +125,9 @@ const buildPlanStructure = (kalori, amacValue, existingEntries = {}) => {
   return {
     hedefKalori: kalori,
     amac: amacValue,
+    mealCount: mealCount,
     meals,
-    entries: ensureEntryShape(existingEntries),
+    entries: ensureEntryShape(existingEntries, mealCount),
   };
 };
 
@@ -84,15 +152,18 @@ const getMotivationMessage = (total, target, amacValue) => {
   return 'Kalori çizgisini aştın ama sorun değil; yarın hafif bir yürüyüşle tabloyu dengeleyebilirsin.';
 };
 
-const DietPlannerScreen = () => {
+const DietPlannerScreenContent = ({ navigation }) => {
+  const { isDarkMode, colors } = useTheme();
   const [plan, setPlan] = useState(null);
   const [mealEntries, setMealEntries] = useState(ensureEntryShape());
   const [showForm, setShowForm] = useState(false);
   const [hedefKalori, setHedefKalori] = useState('');
   const [amac, setAmac] = useState('kilo-ver');
+  const [mealCount, setMealCount] = useState(6);
   const [activeMeal, setActiveMeal] = useState(MEAL_SLOTS[0].id);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('Tümü');
 
   useEffect(() => {
     loadPlan();
@@ -114,8 +185,9 @@ const DietPlannerScreen = () => {
       if (savedData) {
         const parsed = JSON.parse(savedData);
         if (parsed?.meals) {
+          setMealCount(parsed.mealCount || 6);
           setPlan(parsed);
-          setMealEntries(ensureEntryShape(parsed.entries));
+          setMealEntries(ensureEntryShape(parsed.entries, parsed.mealCount || 6));
           return;
         }
         if (parsed?.hedefKalori) {
@@ -135,7 +207,7 @@ const DietPlannerScreen = () => {
       return;
     }
 
-    const yeniPlan = buildPlanStructure(kalori, amac);
+    const yeniPlan = buildPlanStructure(kalori, amac, mealCount);
 
     try {
       await persistPlan(yeniPlan);
@@ -159,7 +231,8 @@ const DietPlannerScreen = () => {
             try {
               await AsyncStorage.removeItem(PLAN_KEY);
               setPlan(null);
-              setMealEntries(ensureEntryShape());
+              setMealEntries(ensureEntryShape({}, 6));
+              setMealCount(6);
               setHedefKalori('');
             } catch (error) {
               Alert.alert('Hata', 'Plan silinemedi');
@@ -180,9 +253,20 @@ const DietPlannerScreen = () => {
 
   const filteredFoods = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    if (!query) return FOOD_LIBRARY;
-    return FOOD_LIBRARY.filter(food => food.name.toLowerCase().includes(query));
-  }, [searchQuery]);
+    let foods = FOOD_LIBRARY;
+    
+    // Kategori filtresi
+    if (categoryFilter !== 'Tümü') {
+      foods = foods.filter(food => food.category === categoryFilter);
+    }
+    
+    // Arama filtresi
+    if (query) {
+      foods = foods.filter(food => food.name.toLowerCase().includes(query));
+    }
+    
+    return foods;
+  }, [searchQuery, categoryFilter]);
 
   const motivationMessage = useMemo(() => {
     return getMotivationMessage(dailyTotal, plan?.hedefKalori || 0, plan?.amac);
@@ -228,12 +312,20 @@ const DietPlannerScreen = () => {
   // EMPTY STATE
   if (!plan && !showForm) {
     return (
-      <SafeAreaView style={styles.container}>
-        <LinearGradient colors={['#E8F5E9', '#F5F7FA']} style={{ flex: 1 }}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <LinearGradient colors={isDarkMode ? ['#1C1C1E', '#000000'] : ['#E8F5E9', '#F5F7FA']} style={{ flex: 1 }}>
+          <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
+            <BackButton navigation={navigation} />
+          </View>
           <ScrollView contentContainerStyle={styles.content}>
-            <View style={styles.card}>
-              <Text style={styles.emptyTitle}>Henüz bir planın yok</Text>
-              <Text style={styles.emptySubtitle}>
+            <View style={[styles.card, { 
+              backgroundColor: colors.cardBackground,
+              borderColor: colors.border,
+              shadowColor: isDarkMode ? '#000' : '#000',
+              shadowOpacity: isDarkMode ? 0.3 : 0.05,
+            }]}>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>Henüz bir planın yok</Text>
+              <Text style={[styles.emptySubtitle, { color: colors.secondaryText }]}>
                 Hedeflerine ulaşmak için hemen yeni bir diyet planı oluştur.
               </Text>
               <Pressable style={styles.primaryButton} onPress={() => setShowForm(true)}>
@@ -249,19 +341,32 @@ const DietPlannerScreen = () => {
   // FORM VIEW
   if (showForm) {
     return (
-      <SafeAreaView style={styles.container}>
-        <LinearGradient colors={['#E8F5E9', '#F5F7FA']} style={{ flex: 1 }}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <LinearGradient colors={isDarkMode ? ['#1C1C1E', '#000000'] : ['#E8F5E9', '#F5F7FA']} style={{ flex: 1 }}>
+          <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
+            <BackButton navigation={navigation} />
+          </View>
           <ScrollView contentContainerStyle={styles.content}>
-            <View style={[styles.card, { borderColor: '#22c55e', borderWidth: 2 }]}>
-              <Text style={styles.formTitle}>Planını Yapılandır</Text>
-              <Text style={styles.formSubtitle}>Bilgilerini gir, senin için hesaplayalım.</Text>
+            <View style={[styles.card, { 
+              backgroundColor: colors.cardBackground, 
+              borderColor: '#22c55e', 
+              borderWidth: 2,
+              shadowColor: isDarkMode ? '#000' : '#000',
+              shadowOpacity: isDarkMode ? 0.3 : 0.05,
+            }]}>
+              <Text style={[styles.formTitle, { color: colors.text }]}>Planını Yapılandır</Text>
+              <Text style={[styles.formSubtitle, { color: colors.secondaryText }]}>Bilgilerini gir, senin için hesaplayalım.</Text>
 
-              <View style={styles.formContainer}>
+              <View style={[styles.formContainer, {
+                backgroundColor: isDarkMode ? '#1C1C1E' : '#f9fafb',
+                borderColor: colors.border,
+              }]}>
                 <View style={styles.formRow}>
-                  <Text style={styles.label}>Günlük hedef kalori</Text>
+                  <Text style={[styles.label, { color: colors.text }]}>Günlük hedef kalori</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { backgroundColor: colors.cardBackground, color: colors.text, borderColor: colors.border }]}
                     placeholder="Örn: 1800"
+                    placeholderTextColor={colors.secondaryText}
                     keyboardType="numeric"
                     value={hedefKalori}
                     onChangeText={setHedefKalori}
@@ -269,15 +374,26 @@ const DietPlannerScreen = () => {
                 </View>
 
                 <View style={styles.formRow}>
-                  <Text style={styles.label}>Amacın</Text>
+                  <Text style={[styles.label, { color: colors.text }]}>Amacın</Text>
                   <View style={styles.radioGroup}>
                     {GOAL_OPTIONS.map((option) => (
                       <Pressable
                         key={option.value}
-                        style={[styles.radioOption, amac === option.value && styles.radioOptionActive]}
+                        style={[
+                          styles.radioOption,
+                          { backgroundColor: colors.cardBackground, borderColor: colors.border },
+                          amac === option.value && { 
+                            borderColor: '#22c55e',
+                            backgroundColor: isDarkMode ? '#064e3b' : '#ecfdf3',
+                          }
+                        ]}
                         onPress={() => setAmac(option.value)}
                       >
-                        <Text style={[styles.radioText, amac === option.value && styles.radioTextActive]}>
+                        <Text style={[
+                          styles.radioText,
+                          { color: colors.text },
+                          amac === option.value && styles.radioTextActive
+                        ]}>
                           {option.label}
                         </Text>
                       </Pressable>
@@ -286,12 +402,25 @@ const DietPlannerScreen = () => {
                 </View>
 
                 <View style={styles.formRow}>
-                  <Text style={styles.label}>Öğün sayısı</Text>
-                  <TextInput
-                    style={[styles.input, styles.inputDisabled]}
-                    value="6"
-                    editable={false}
-                  />
+                  <Text style={[styles.label, { color: colors.text }]}>Öğün sayısı</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                    {[3, 4, 5, 6].map((num) => (
+                      <Pressable
+                        key={num}
+                        style={[
+                          styles.optionButton,
+                          { borderColor: mealCount === num ? '#0ea5e9' : colors.border },
+                          { backgroundColor: mealCount === num ? '#e0f2fe' : (isDarkMode ? '#2C2C2E' : '#F9FAFB') }
+                        ]}
+                        onPress={() => setMealCount(num)}
+                      >
+                        <Text style={[styles.optionButtonText, { color: mealCount === num ? '#0ea5e9' : colors.text }]}>{num} öğün</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                  <Text style={[styles.muted, { fontSize: 12, marginTop: 4, color: colors.secondaryText }]}>
+                    {mealCount === 6 ? 'Diyabet yönetimi için önerilen öğün sayısı' : `${mealCount} öğün seçildi`}
+                  </Text>
                 </View>
 
                 <View style={styles.buttonRow}>
@@ -318,14 +447,17 @@ const DietPlannerScreen = () => {
 
   // DASHBOARD VIEW (Plan exists)
   return (
-    <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['#E8F5E9', '#F5F7FA']} style={{ flex: 1 }}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <LinearGradient colors={isDarkMode ? ['#1C1C1E', '#000000'] : ['#E8F5E9', '#F5F7FA']} style={{ flex: 1 }}>
+        <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
+          <BackButton navigation={navigation} />
+        </View>
         <ScrollView contentContainerStyle={styles.content}>
-          <View style={styles.card}>
+          <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
             <View style={styles.summaryHeader}>
               <View>
-                <Text style={styles.totalCal}>{plan.hedefKalori} kcal</Text>
-                <Text style={styles.totalCalSubtitle}>Günlük Hedef</Text>
+                <Text style={[styles.totalCal, { color: colors.text }]}>{plan.hedefKalori} kcal</Text>
+                <Text style={[styles.totalCalSubtitle, { color: colors.secondaryText }]}>Günlük Hedef</Text>
               </View>
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{getAmacText(plan.amac)}</Text>
@@ -338,11 +470,11 @@ const DietPlannerScreen = () => {
                 const remaining = Math.max(0, meal.hedefKalori - consumed);
                 const isActive = activeMeal === meal.id;
                 return (
-                  <View key={meal.id} style={styles.mealCard}>
+                  <View key={meal.id} style={[styles.mealCard, { backgroundColor: isDarkMode ? '#2C2C2E' : '#f8fafc', borderColor: colors.border }]}>
                     <View style={styles.mealHeader}>
                       <View>
-                        <Text style={styles.mealName}>{meal.label}</Text>
-                        <Text style={styles.mealWindow}>{meal.window}</Text>
+                        <Text style={[styles.mealName, { color: colors.text }]}>{meal.label}</Text>
+                        <Text style={[styles.mealWindow, { color: colors.secondaryText }]}>{meal.window}</Text>
                       </View>
                       <View style={styles.mealCalBox}>
                         <Text style={styles.mealCal}>{consumed} / {meal.hedefKalori} kcal</Text>
@@ -353,10 +485,10 @@ const DietPlannerScreen = () => {
                     {items.length ? (
                       <View style={styles.foodList}>
                         {items.map(item => (
-                          <View key={item.entryId} style={styles.foodRow}>
+                          <View key={item.entryId} style={[styles.foodRow, { borderBottomColor: colors.border }]}>
                             <View>
-                              <Text style={styles.foodName}>{item.name}</Text>
-                              <Text style={styles.foodCal}>{item.calories} kcal</Text>
+                              <Text style={[styles.foodName, { color: colors.text }]}>{item.name}</Text>
+                              <Text style={[styles.foodCal, { color: colors.secondaryText }]}>{item.calories} kcal</Text>
                             </View>
                             <Pressable
                               style={styles.removePill}
@@ -368,7 +500,7 @@ const DietPlannerScreen = () => {
                         ))}
                       </View>
                     ) : (
-                      <Text style={styles.foodEmptyText}>Henüz yemek eklenmedi.</Text>
+                      <Text style={[styles.foodEmptyText, { color: colors.secondaryText }]}>Henüz yemek eklenmedi.</Text>
                     )}
 
                     <Pressable
@@ -385,78 +517,59 @@ const DietPlannerScreen = () => {
               })}
             </View>
 
-            <View style={styles.tableContainer}>
-              <View style={[styles.tableRow, styles.tableHeaderRow]}>
-                <Text style={[styles.tableCell, styles.tableHeadText]}>Öğün</Text>
-                <Text style={[styles.tableCell, styles.tableHeadText]}>Hedef</Text>
-                <Text style={[styles.tableCell, styles.tableHeadText]}>Alınan</Text>
-              </View>
-              {plan.meals.map(meal => (
-                <View key={meal.id} style={styles.tableRow}>
-                  <Text style={styles.tableCell}>{meal.label}</Text>
-                  <Text style={styles.tableCell}>{meal.hedefKalori} kcal</Text>
-                  <Text style={styles.tableCell}>{calculateMealTotal(meal.id)} kcal</Text>
-                </View>
-              ))}
-              <View style={[styles.tableRow, styles.tableFooterRow]}>
-                <Text style={[styles.tableCell, styles.tableHeadText]}>Toplam</Text>
-                <Text style={[styles.tableCell, styles.tableHeadText]}>{plan.hedefKalori} kcal</Text>
-                <Text style={[styles.tableCell, styles.tableHeadText]}>{dailyTotal} kcal</Text>
-              </View>
-            </View>
-
-            <View style={styles.motivationCard}>
-              <Text style={styles.motivationLabel}>Motivasyon</Text>
-              <Text style={styles.motivationText}>{motivationMessage}</Text>
-            </View>
-
             <Pressable style={styles.dangerButton} onPress={deletePlan}>
               <Text style={styles.dangerButtonText}>Planı Sil ve Yeniden Başla</Text>
             </Pressable>
           </View>
         </ScrollView>
 
-        <Pressable style={styles.fab} onPress={() => setPickerOpen(true)}>
-          <Text style={styles.fabIcon}>＋</Text>
-        </Pressable>
-
         {pickerOpen && plan ? (
           <View style={styles.pickerOverlay}>
-            <View style={styles.pickerCard}>
+            <View style={[styles.pickerCard, { backgroundColor: colors.cardBackground }]}>
               <View style={styles.pickerHeader}>
-                <Text style={styles.pickerTitle}>Yemek seç ve ekle</Text>
-                <Pressable onPress={() => setPickerOpen(false)}>
-                  <Text style={styles.closeText}>Kapat</Text>
+                <Text style={[styles.pickerTitle, { color: colors.text }]}>Yemek Ekle</Text>
+                <Pressable onPress={() => { setPickerOpen(false); setCategoryFilter('Tümü'); }}>
+                  <Text style={styles.closeText}>✕</Text>
                 </Pressable>
               </View>
 
-              <View style={styles.mealChipRow}>
-                {MEAL_SLOTS.map(slot => (
-                  <Pressable
-                    key={slot.id}
-                    style={[styles.mealChip, activeMeal === slot.id && styles.mealChipActive]}
-                    onPress={() => setActiveMeal(slot.id)}
-                  >
-                    <Text style={[styles.mealChipText, activeMeal === slot.id && styles.mealChipTextActive]}>
-                      {slot.label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
+              {/* Kategori Filtreleri */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 12 }}>
+                <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 4 }}>
+                  {['Tümü', 'Kahvaltı', 'Ana Yemek', 'Çorba', 'Salata', 'Zeytinyağlı', 'Meyve', 'Atıştırmalık'].map(cat => (
+                    <Pressable
+                      key={cat}
+                      style={[
+                        styles.categoryChip,
+                        { backgroundColor: categoryFilter === cat ? '#22c55e' : (isDarkMode ? '#2C2C2E' : '#f3f4f6') }
+                      ]}
+                      onPress={() => setCategoryFilter(cat)}
+                    >
+                      <Text style={[
+                        styles.categoryChipText,
+                        { color: categoryFilter === cat ? '#fff' : colors.text }
+                      ]}>
+                        {cat}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </ScrollView>
 
               <TextInput
-                style={styles.searchInput}
-                placeholder="Yemek ara (örn: tavuk, çorba)"
+                style={[styles.searchInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+                placeholder="Ara..."
+                placeholderTextColor={colors.secondaryText}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
               />
 
               <ScrollView style={styles.foodPickerList}>
                 {filteredFoods.map(food => (
-                  <View key={food.id} style={styles.foodPickerRow}>
+                  <View key={food.id} style={[styles.foodPickerRow, { borderBottomColor: colors.border }]}>
                     <View>
-                      <Text style={styles.foodPickerName}>{food.name}</Text>
-                      <Text style={styles.foodPickerCal}>{food.calories} kcal</Text>
+                      <Text style={[styles.foodPickerName, { color: colors.text }]}>{food.name}</Text>
+                      <Text style={[styles.foodPickerCal, { color: colors.secondaryText }]}>{food.calories} kcal</Text>
                     </View>
                     <Pressable style={styles.foodAddButton} onPress={() => handleAddFood(food)}>
                       <Text style={styles.foodAddText}>Ekle</Text>
@@ -464,7 +577,7 @@ const DietPlannerScreen = () => {
                   </View>
                 ))}
                 {!filteredFoods.length && (
-                  <Text style={styles.noFoodText}>Aramana uygun yemek bulunamadı.</Text>
+                  <Text style={[styles.noFoodText, { color: colors.secondaryText }]}>Aramına uygun yemek bulunamadı.</Text>
                 )}
               </ScrollView>
             </View>
@@ -478,54 +591,43 @@ const DietPlannerScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
   },
   content: {
     padding: 16,
     paddingBottom: 32,
   },
   card: {
-    backgroundColor: 'white',
     borderRadius: 16,
     padding: 24,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.05,
     shadowRadius: 25,
     elevation: 5,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
   },
   emptyTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#2C3E50',
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#7F8C8D',
     marginBottom: 24,
     lineHeight: 20,
   },
   formTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#2C3E50',
     marginBottom: 4,
   },
   formSubtitle: {
     fontSize: 14,
-    color: '#7F8C8D',
     marginBottom: 20,
   },
   formContainer: {
-    backgroundColor: '#f9fafb',
     borderRadius: 12,
     padding: 20,
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: '#d1d5db',
     gap: 16,
   },
   formRow: {
@@ -534,15 +636,12 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#4b5563',
   },
   input: {
     padding: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#d1d5db',
     fontSize: 14,
-    backgroundColor: '#fff',
   },
   inputDisabled: {
     backgroundColor: '#e5e7eb',
@@ -555,16 +654,12 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    backgroundColor: '#fff',
   },
   radioOptionActive: {
     borderColor: '#22c55e',
-    backgroundColor: '#ecfdf3',
   },
   radioText: {
     fontSize: 14,
-    color: '#4b5563',
   },
   radioTextActive: {
     color: '#16a34a',
@@ -858,6 +953,16 @@ const styles = StyleSheet.create({
   mealChipTextActive: {
     color: '#fff',
   },
+  categoryChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: '#f3f4f6',
+  },
+  categoryChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
   searchInput: {
     borderWidth: 1,
     borderColor: '#e2e8f0',
@@ -902,5 +1007,12 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
   },
 });
+
+const DietPlannerScreen = ({ navigation }) => (
+  <View style={{ flex: 1 }}>
+    <DietPlannerScreenContent navigation={navigation} />
+    <BottomNavBar navigation={navigation} activeKey="DietPlan" />
+  </View>
+);
 
 export default DietPlannerScreen;

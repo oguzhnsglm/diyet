@@ -1,7 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, SafeAreaView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTheme } from '../context/ThemeContext';
+import BottomNavBar from '../components/BottomNavBar';
+import BackButton from '../components/BackButton';
 
 const STORAGE_KEY = 'glucose_calendar_days';
 
@@ -70,7 +73,8 @@ const getMonthMatrix = (current) => {
   return weeks;
 };
 
-const GlucoseCalendarScreen = () => {
+const GlucoseCalendarScreen = ({ navigation }) => {
+  const { isDarkMode, colors } = useTheme();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [daysData, setDaysData] = useState({});
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -94,10 +98,6 @@ const GlucoseCalendarScreen = () => {
     load();
   }, []);
 
-  useEffect(() => {
-    setNoteInput(selectedDayData.note || '');
-  }, [selectedKey, selectedDayData.note]);
-
   const saveDays = async (updated) => {
     try {
       setDaysData(updated);
@@ -120,11 +120,38 @@ const GlucoseCalendarScreen = () => {
 
   const handleSaveNote = () => {
     const trimmed = noteInput.trim();
+    if (!trimmed) return;
+    
+    const now = new Date();
+    const timeString = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+    
+    const existingNotes = daysData[selectedKey]?.notes || [];
+    const newNote = {
+      text: trimmed,
+      timestamp: now.toISOString(),
+      timeString: timeString,
+    };
+    
     const updated = {
       ...daysData,
       [selectedKey]: {
         ...(daysData[selectedKey] || {}),
-        note: trimmed,
+        notes: [...existingNotes, newNote],
+      },
+    };
+    saveDays(updated);
+    setNoteInput('');
+  };
+
+  const handleDeleteNote = (dateKey, noteIndex) => {
+    const existingNotes = daysData[dateKey]?.notes || [];
+    const updatedNotes = existingNotes.filter((_, idx) => idx !== noteIndex);
+    
+    const updated = {
+      ...daysData,
+      [dateKey]: {
+        ...(daysData[dateKey] || {}),
+        notes: updatedNotes,
       },
     };
     saveDays(updated);
@@ -137,23 +164,24 @@ const GlucoseCalendarScreen = () => {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 24 }}>
-      <LinearGradient colors={['#DBEAFE', '#EFF6FF']} style={styles.header}>
-        <Text style={styles.headerTitle}>Günlük Takvim</Text>
-        <Text style={styles.headerSubtitle}>
-          Şeker dengene göre günlerini yeşil / sarı / kırmızı olarak işaretle.
-        </Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
+        <BackButton navigation={navigation} />
+      </View>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
+        <LinearGradient colors={isDarkMode ? ['#1C1C1E', '#1C1C1E'] : ['#FFFFFF', '#FFFFFF']} style={styles.header}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Günlük Takvim</Text>
       </LinearGradient>
 
       <View style={styles.monthRow}>
-        <Pressable style={styles.monthButton} onPress={() => changeMonth(-1)}>
-          <Text style={styles.monthButtonText}>{'‹'}</Text>
+        <Pressable style={[styles.monthButton, { backgroundColor: colors.cardBackground }]} onPress={() => changeMonth(-1)}>
+          <Text style={[styles.monthButtonText, { color: colors.text }]}>{'<'}</Text>
         </Pressable>
-        <Text style={styles.monthTitle}>
+        <Text style={[styles.monthTitle, { color: colors.text }]}>
           {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
         </Text>
-        <Pressable style={styles.monthButton} onPress={() => changeMonth(1)}>
-          <Text style={styles.monthButtonText}>{'›'}</Text>
+        <Pressable style={[styles.monthButton, { backgroundColor: colors.cardBackground }]} onPress={() => changeMonth(1)}>
+          <Text style={[styles.monthButtonText, { color: colors.text }]}>{'>'}</Text>
         </Pressable>
       </View>
 
@@ -204,12 +232,12 @@ const GlucoseCalendarScreen = () => {
         </View>
       ))}
 
-      <View style={styles.detailCard}>
-        <Text style={styles.detailTitle}>
+      <View style={[styles.detailCard, { backgroundColor: colors.cardBackground }]}>
+        <Text style={[styles.detailTitle, { color: colors.text }]}>
           Seçili Gün: {selectedDate.getDate()} {monthNames[selectedDate.getMonth()]} {selectedDate.getFullYear()}
         </Text>
 
-        <Text style={styles.detailLabel}>Günün durumu</Text>
+        <Text style={[styles.detailLabel, { color: colors.text }]}>Günün durumu</Text>
         <View style={styles.statusRow}>
           <Pressable
             style={[styles.statusChip, selectedDayData.status === 'good' && styles.statusChipActiveGood]}
@@ -234,41 +262,85 @@ const GlucoseCalendarScreen = () => {
           </Pressable>
         </View>
 
-        {selectedDayData.status && (
-          <Text style={styles.statusInfo}>{statusLabels[selectedDayData.status]}</Text>
-        )}
-
-        <Text style={[styles.detailLabel, { marginTop: 12 }]}>Not (isteğe bağlı)</Text>
+        <Text style={[styles.detailLabel, { color: colors.text, marginTop: 12 }]}>Not (isteğe bağlı)</Text>
         <TextInput
-          style={styles.noteInput}
-          placeholder="Bugün yemek, şeker, ruh hali ile ilgili not yazmak istersen buraya ekleyebilirsin."
+          style={[styles.noteInput, { backgroundColor: colors.cardBackground, color: colors.text, borderColor: colors.border }]}
+          placeholder=""
+          placeholderTextColor={colors.secondaryText}
           multiline
           value={noteInput}
           onChangeText={setNoteInput}
-          onBlur={handleSaveNote}
         />
-        <Text style={styles.noteHint}>Not alanından çıktığında otomatik kaydedilir.</Text>
+        <Pressable
+          style={[styles.saveNoteButton, { backgroundColor: isDarkMode ? '#0ea5e9' : '#3b82f6' }]}
+          onPress={handleSaveNote}
+        >
+          <Text style={styles.saveNoteButtonText}>💾 Kaydet</Text>
+        </Pressable>
       </View>
 
-      <View style={styles.legendCard}>
-        <Text style={styles.legendTitle}>Renk Açıklamaları</Text>
+      <View style={[styles.legendCard, { backgroundColor: colors.cardBackground }]}>
+        <Text style={[styles.legendTitle, { color: colors.text }]}>Renk Açıklamaları</Text>
         <View style={styles.legendRow}>
           <View style={[styles.legendDot, { backgroundColor: statusColors.good }]} />
-          <Text style={styles.legendText}>Yeşil: Gün genel olarak dengeli geçti.</Text>
+          <Text style={[styles.legendText, { color: colors.text }]}>Yeşil: Gün genel olarak dengeli geçti.</Text>
         </View>
         <View style={styles.legendRow}>
           <View style={[styles.legendDot, { backgroundColor: statusColors.mid }]} />
-          <Text style={styles.legendText}>Sarı: Bazı yüksek/düşük değerler vardı.</Text>
+          <Text style={[styles.legendText, { color: colors.text }]}>Sarı: Bazı yüksek/düşük değerler vardı.</Text>
         </View>
         <View style={styles.legendRow}>
           <View style={[styles.legendDot, { backgroundColor: statusColors.bad }]} />
-          <Text style={styles.legendText}>Kırmızı: Şeker sık sık çok yüksek/çok düşüktü.</Text>
+          <Text style={[styles.legendText, { color: colors.text }]}>Kırmızı: Şeker sık sık çok yüksek/çok düşüktü.</Text>
         </View>
-        <Text style={styles.legendFoot}>
-          * Bu takvim, hem kan şekeri ölçümlerini hem de genel hislerini özetlemek için kullanabileceğin kişisel bir ajandadır.
-        </Text>
       </View>
-    </ScrollView>
+
+      {/* Kaydedilmiş Notlar Ajandası */}
+      <View style={[styles.notesJournal, { backgroundColor: colors.cardBackground }]}>
+        <Text style={[styles.legendTitle, { color: colors.text }]}>📝 Notlarım</Text>
+        {Object.keys(daysData).filter(key => daysData[key].notes && daysData[key].notes.length > 0).length === 0 ? (
+          <Text style={[styles.emptyNotesText, { color: colors.secondaryText }]}>Henüz kaydedilmiş not bulunmuyor.</Text>
+        ) : (
+          Object.keys(daysData)
+            .filter(key => daysData[key].notes && daysData[key].notes.length > 0)
+            .sort((a, b) => new Date(b) - new Date(a))
+            .slice(0, 10)
+            .map(dateKey => {
+              const [year, month, day] = dateKey.split('-');
+              const date = new Date(year, parseInt(month) - 1, day);
+              const dayName = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'][date.getDay()];
+              const formattedDate = `${day}.${month}.${year}`;
+              const notes = daysData[dateKey].notes || [];
+              
+              return (
+                <View key={dateKey} style={[styles.noteEntry, { borderColor: isDarkMode ? '#3A3A3C' : '#E5E7EB' }]}>
+                  <View style={styles.noteEntryHeader}>
+                    <Text style={[styles.noteEntryDate, { color: colors.text }]}>{dayName}, {formattedDate}</Text>
+                    {daysData[dateKey].status && (
+                      <View style={[styles.noteStatusDot, { backgroundColor: statusColors[daysData[dateKey].status] }]} />
+                    )}
+                  </View>
+                  {notes.map((note, idx) => (
+                    <View key={idx} style={[styles.noteItemRow, { marginTop: idx > 0 ? 8 : 4 }]}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.noteEntryTime, { color: isDarkMode ? '#FF9F0A' : '#3b82f6' }]}>{note.timeString}</Text>
+                        <Text style={[styles.noteEntryText, { color: colors.secondaryText }]}>{note.text}</Text>
+                      </View>
+                      <Pressable
+                        onPress={() => handleDeleteNote(dateKey, idx)}
+                        style={styles.deleteNoteButton}
+                      >
+                        <Text style={styles.deleteNoteButtonText}>🗑️</Text>
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
+              );
+            })
+        )}
+      </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
@@ -371,7 +443,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlignVertical: 'top',
   },
-  noteHint: { fontSize: 11, color: '#9CA3AF', marginTop: 4 },
+  saveNoteButton: {
+    backgroundColor: '#3b82f6',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  saveNoteButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   legendCard: {
     backgroundColor: 'white',
     marginHorizontal: 16,
@@ -386,6 +470,93 @@ const styles = StyleSheet.create({
   legendDot: { width: 10, height: 10, borderRadius: 999, marginRight: 6 },
   legendText: { fontSize: 12, color: '#4B5563' },
   legendFoot: { fontSize: 11, color: '#6B7280', marginTop: 6 },
+  notesJournal: {
+    backgroundColor: 'white',
+    marginHorizontal: 16,
+    marginTop: 16,
+    padding: 14,
+    borderRadius: 14,
+    marginBottom: 24,
+    elevation: 1,
+  },
+  emptyNotesText: {
+    fontSize: 13,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  noteEntry: {
+    borderBottomWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingVertical: 12,
+    marginTop: 8,
+  },
+  noteEntryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  noteEntryDate: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#0F172A',
+  },
+  noteStatusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 999,
+  },
+  noteEntryText: {
+    fontSize: 12,
+    color: '#4B5563',
+    lineHeight: 18,
+  },
+  noteEntryTime: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  savedNoteItem: {
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  savedNoteTime: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  savedNoteText: {
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  deleteNoteButton: {
+    padding: 4,
+    marginLeft: 8,
+  },
+  deleteNoteButtonText: {
+    fontSize: 16,
+  },
+  noteItemRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
 });
 
-export default GlucoseCalendarScreen;
+function GlucoseCalendarScreenWithNav({ navigation }) {
+  return (
+    <>
+      <GlucoseCalendarScreen navigation={navigation} />
+      <BottomNavBar navigation={navigation} activeKey="Diary" />
+    </>
+  );
+}
+
+export default GlucoseCalendarScreenWithNav;

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getTwinData, getPersonalizedInsights } from '../logic/digitalTwin';
+import BottomNavBar from '../components/BottomNavBar';
 
 const VoiceCoachScreen = ({ navigation }) => {
   const [userQuestion, setUserQuestion] = useState('');
@@ -96,7 +97,7 @@ const VoiceCoachScreen = ({ navigation }) => {
 
     // Motivasyon soruları
     if (question.includes('motivasyon') || question.includes('bıktım') || question.includes('zor')) {
-      return '💪 Seni anlıyorum, diyabet yönetimi yorucu olabiliyor.\n\nAma biliyorsun:\n• Her ölçüm, kendine yatırım\n• Her sağlıklı seçim, geleceğine hediye\n• Mükemmel olmak zorunda değilsin, tutarlı olmak yeter!\n\n🌟 Sen harikasın, devam et! Yanındayım.';
+      return '💪 Tutarlı olmak mükemmel olmaktan önemli. Devam et, yanındayım.';
     }
 
     // Genel bilgi soruları
@@ -116,9 +117,9 @@ const VoiceCoachScreen = ({ navigation }) => {
 
     // Varsayılan yanıtlar
     const defaultResponses = [
-      'İlginç bir soru! Biraz daha detay verir misin? Mesela kan şekerin, yediğin yemek veya hissettiğin belirti hakkında.',
-      'Bu konuda sana en iyi doktorun yardımcı olabilir. Ben genel bilgi ve destek sağlayabilirim. Başka bir şey sorabilirim?',
-      'Harika soru! Diyabet yönetimi kişiye özel olduğu için, doktorunla bunun senin için en iyi çözümünü konuşmanı öneririm.',
+      'Biraz daha detay verir misin?',
+      'Bu konuda doktorunla konuşmanı öneririm.',
+      'Diyabet yönetimi kişiye özel, doktoruna danış.',
     ];
 
     return defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
@@ -351,4 +352,13 @@ const styles = StyleSheet.create({
   },
 });
 
-export default VoiceCoachScreen;
+function VoiceCoachScreenWithNav(props) {
+  return (
+    <>
+      <VoiceCoachScreen {...props} />
+      <BottomNavBar activeKey="Diary" />
+    </>
+  );
+}
+
+export default VoiceCoachScreenWithNav;

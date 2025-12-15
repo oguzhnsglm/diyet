@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { SafeAreaView, ScrollView, Text, View, Pressable, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { addQuickAction, getQuickActions } from '../logic/quickActions';
+import { addQuickAction, getQuickActions, removeQuickAction } from '../logic/quickActions';
+import { useTheme } from '../context/ThemeContext';
+import BottomNavBar from '../components/BottomNavBar';
+import BackButton from '../components/BackButton';
 import GlycemicInfoBadge from '../components/GlycemicInfoBadge';
 import MealRiskEstimator from '../components/MealRiskEstimator';
 import SmartMealWarnings from '../components/SmartMealWarnings';
@@ -157,11 +160,162 @@ const RECIPES = [
     sugarGrams: 4,
     proteinGrams: 8,
   },
+  {
+    id: 11,
+    name: 'Kinoa Salatası',
+    category: 'Salata',
+    calories: 250,
+    prepTime: '25 dk',
+    ingredients: ['1 su bardağı kinoa', 'Cherry domates', 'Salatalık', 'Maydanoz', 'Nane', 'Limon suyu', 'Zeytinyağı (1 ykaş)', 'Az tuz'],
+    instructions: '1. Kinoayı haşlayın ve soğutun.\n2. Sebzeleri küp şeklinde doğrayın.\n3. Tüm malzemeleri karıştırın.\n4. Limon ve zeytinyağıyla tatlandırın.',
+    nutrition: 'Protein: 9g, Karbonhidrat: 38g, Yağ: 6g, Sodyum: 100mg',
+    tags: ['Vegan', 'Tam Tahıl', 'Yüksek Lif'],
+    gi: 53,
+    carbGrams: 38,
+    sugarGrams: 3,
+    proteinGrams: 9,
+  },
+  {
+    id: 12,
+    name: 'Fırında Sebzeli Tavuk',
+    category: 'Ana Yemek',
+    calories: 310,
+    prepTime: '35 dk',
+    ingredients: ['200g tavuk göğsü', 'Patlıcan', 'Kabak', 'Havuc', 'Domates', 'Sarımsak', 'Kekik', 'Az tuz'],
+    instructions: '1. Tavuğu ve sebzeleri doğrayın.\n2. Fırın tepsinize dizin.\n3. Baharatlar ve az tuz ekleyin.\n4. 180°C fırında 30 dk pişirin.',
+    nutrition: 'Protein: 35g, Karbonhidrat: 20g, Yağ: 7g, Sodyum: 180mg',
+    tags: ['Yüksek Protein', 'Düşük Tuz', 'Sebze Ağırlıklı'],
+    gi: 25,
+    carbGrams: 20,
+    sugarGrams: 6,
+    proteinGrams: 35,
+  },
+  {
+    id: 13,
+    name: 'Acuka (Şekersiz)',
+    category: 'Meze/Yan Yemek',
+    calories: 80,
+    prepTime: '20 dk',
+    ingredients: ['3 adet kırmızı biber', 'Ceviz', 'Sarımsak', 'Zeytinyağı', 'Limon tuzu', 'Kimyon', 'Pul biber'],
+    instructions: '1. Biberleri kor ateşte kömürleştirin.\n2. Ceviz ve sarımsak ile robottan gecirin.\n3. Baharatları ekleyin.\n4. Zeytinyağıyla yumuşakça karıştırın.',
+    nutrition: 'Protein: 2g, Karbonhidrat: 8g, Yağ: 5g, Sodyum: 40mg',
+    tags: ['Vegan', 'Tuzsuz', 'Atıştırmalık'],
+    gi: 10,
+    carbGrams: 8,
+    sugarGrams: 4,
+    proteinGrams: 2,
+  },
+  {
+    id: 14,
+    name: 'Lor Peynirli Ispanak',
+    category: 'Ana Yemek',
+    calories: 180,
+    prepTime: '25 dk',
+    ingredients: ['300g ıspanak', '100g lor peyniri', 'Soğan', 'Sarımsak', 'Az tuz', 'Karabiber', 'Zeytinyağı'],
+    instructions: '1. Ispanağı yıkayın ve doğrayın.\n2. Soğanı kavruna.\n3. Ispanağı ekleyip pişirin.\n4. Lor peyniriyle karıştırıp servis edin.',
+    nutrition: 'Protein: 12g, Karbonhidrat: 10g, Yağ: 8g, Sodyum: 150mg',
+    tags: ['Düşük Tuz', 'Yüksek Demir', 'Protein'],
+    gi: 15,
+    carbGrams: 10,
+    sugarGrams: 2,
+    proteinGrams: 12,
+  },
+  {
+    id: 15,
+    name: 'Tahınlı Muz Smoothie',
+    category: 'Tatlı/Atıştırmalık',
+    calories: 210,
+    prepTime: '5 dk',
+    ingredients: ['1 adet muz', '1 ykaş tahin', '200ml badem sütü', 'Tarçın', 'Vanilya'],
+    instructions: '1. Tüm malzemeleri blenderda karıştırın.\n2. İstediğiniz kıvamda olana kadar çekin.\n3. Serin servis yapın.',
+    nutrition: 'Protein: 6g, Karbonhidrat: 28g, Yağ: 8g, Şeker: 14g (doğal)',
+    tags: ['Şekersiz', 'Vegan', 'Kahvaltı'],
+    gi: 51,
+    carbGrams: 28,
+    sugarGrams: 14,
+    proteinGrams: 6,
+  },
+  {
+    id: 16,
+    name: 'Izgara Sebze Tabagı',
+    category: 'Vegan Ana Yemek',
+    calories: 160,
+    prepTime: '20 dk',
+    ingredients: ['Patlıcan', 'Kabak', 'Biber', 'Mantar', 'Cherry domates', 'Zeytinyağı', 'Biberiye', 'Az tuz'],
+    instructions: '1. Sebzeleri dilimleyin.\n2. Zeytinyağı ve baharatlarla karıştırın.\n3. Izgara tavada veya fırında pişirin.\n4. Sıcak servis yapın.',
+    nutrition: 'Protein: 5g, Karbonhidrat: 18g, Yağ: 8g, Sodyum: 100mg',
+    tags: ['Vegan', 'Düşük Kalori', 'Yüksek Lif'],
+    gi: 20,
+    carbGrams: 18,
+    sugarGrams: 8,
+    proteinGrams: 5,
+  },
+  {
+    id: 17,
+    name: 'Nohutlu Ispanak Yemeği',
+    category: 'Vegan Ana Yemek',
+    calories: 240,
+    prepTime: '30 dk',
+    ingredients: ['1 su bardağı nohut (haşlanmış)', '200g ıspanak', 'Domates', 'Soğan', 'Sarımsak', 'Zeytinyağı', 'Az tuz'],
+    instructions: '1. Soğan ve sarımsağı kavruna.\n2. Domates ekleyip pişirin.\n3. Nohut ve ıspanağı ekleyin.\n4. 15 dk kaynamaya bırakın.',
+    nutrition: 'Protein: 12g, Karbonhidrat: 32g, Yağ: 6g, Sodyum: 140mg',
+    tags: ['Vegan', 'Yüksek Lif', 'Protein'],
+    gi: 28,
+    carbGrams: 32,
+    sugarGrams: 4,
+    proteinGrams: 12,
+  },
+  {
+    id: 18,
+    name: 'Yulaf Ezmesi Topağı',
+    category: 'Tatlı/Atıştırmalık',
+    calories: 95,
+    prepTime: '10 dk',
+    ingredients: ['1 su bardağı yulaf', 'Fıstık ezmesi', 'Bal (1 ykaş)', 'Tarçın', 'Üç çeşit kuru meyve'],
+    instructions: '1. Yulaf ve kuru meyveleri blenderdan gecirin.\n2. Fıstık ezmesi ve bal ekleyin.\n3. Top şeklinde yuvarlayurun.\n4. Buzdolabında bekletin.',
+    nutrition: 'Protein: 3g, Karbonhidrat: 15g, Yağ: 3g, Şeker: 8g',
+    tags: ['Atıştırmalık', 'Enerji Topu', 'Tam Tahıl'],
+    gi: 55,
+    carbGrams: 15,
+    sugarGrams: 8,
+    proteinGrams: 3,
+  },
+  {
+    id: 19,
+    name: 'Ezogelin Corbasi',
+    category: 'Çorba',
+    calories: 160,
+    prepTime: '35 dk',
+    ingredients: ['1/2 su bardağı kırmızı mercimek', '1/4 su bardağı bulgur', 'Domates salcası', 'Soğan', 'Nane', 'Pul biber', 'Az tuz'],
+    instructions: '1. Mercimek ve bulguru haşlayın.\n2. Soğanı kavrulup salca ekleyin.\n3. Mercimek ve bulgurla karıştırın.\n4. Nane ve pul biberle tatlandırın.',
+    nutrition: 'Protein: 8g, Karbonhidrat: 26g, Yağ: 2g, Sodyum: 160mg',
+    tags: ['Vegan', 'Çorba', 'Geleneksel'],
+    gi: 30,
+    carbGrams: 26,
+    sugarGrams: 3,
+    proteinGrams: 8,
+  },
+  {
+    id: 20,
+    name: 'Tavuklu Brüksel Lahanası',
+    category: 'Ana Yemek',
+    calories: 270,
+    prepTime: '25 dk',
+    ingredients: ['150g tavuk göğsü', '200g brüksel lahanası', 'Sarımsak', 'Zeytinyağı', 'Limon suyu', 'Az tuz', 'Karabiber'],
+    instructions: '1. Brüksel lhanasını ikiye bölün.\n2. Tavuğu küçük parçalara kesin.\n3. Tavuğu pişirin, brüksel lahanası ekleyin.\n4. Sarımsak ve limonla tatlandırın.',
+    nutrition: 'Protein: 30g, Karbonhidrat: 12g, Yağ: 9g, Sodyum: 170mg',
+    tags: ['Yüksek Protein', 'Düşük Karbonhidrat', 'Antioksidan'],
+    gi: 15,
+    carbGrams: 12,
+    sugarGrams: 3,
+    proteinGrams: 30,
+  },
 ];
 
 const QUICK_CATEGORY = 'recipes';
 
 const HealthyRecipesScreen = ({ navigation }) => {
+  const { isDarkMode, colors } = useTheme();
   const [selectedCategory, setSelectedCategory] = useState('Tümü');
   const [expandedRecipe, setExpandedRecipe] = useState(null);
   const [glycemicExpanded, setGlycemicExpanded] = useState({});
@@ -181,16 +335,26 @@ const HealthyRecipesScreen = ({ navigation }) => {
     loadQuick();
   }, []);
 
-  const handleSaveFavorite = async (recipe) => {
-    const payload = {
-      id: recipe.id,
-      name: recipe.name,
-      category: recipe.category,
-      calories: recipe.calories,
-      prepTime: recipe.prepTime,
-    };
-    const updated = await addQuickAction(QUICK_CATEGORY, payload);
-    setQuickRecipes(updated);
+  const handleToggleFavorite = async (recipe) => {
+    // Zaten favorilerde mi kontrol et
+    const isAlreadyFavorite = quickRecipes.some(q => q.id === recipe.id);
+    
+    if (isAlreadyFavorite) {
+      // Sık kullanılanlardan çıkar
+      const updated = await removeQuickAction(QUICK_CATEGORY, recipe.id);
+      setQuickRecipes(updated);
+    } else {
+      // Sık kullanılanlara ekle
+      const payload = {
+        id: recipe.id,
+        name: recipe.name,
+        category: recipe.category,
+        calories: recipe.calories,
+        prepTime: recipe.prepTime,
+      };
+      const updated = await addQuickAction(QUICK_CATEGORY, payload);
+      setQuickRecipes(updated);
+    }
   };
 
   const handleQuickSelect = (recipe) => {
@@ -201,39 +365,30 @@ const HealthyRecipesScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['#FFF3E0', '#F5F7FA']} style={{ flex: 1 }}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <LinearGradient colors={isDarkMode ? ['#1C1C1E', '#000000'] : ['#FFF3E0', '#F5F7FA']} style={{ flex: 1 }}>
+        <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
+          <BackButton navigation={navigation} />
+        </View>
         <ScrollView contentContainerStyle={styles.content}>
           
-          <View style={styles.headerRow}>
-            <Pressable
-              style={styles.backButton}
-              onPress={() => {
-                if (navigation && navigation.canGoBack()) {
-                  navigation.goBack();
-                }
-              }}
-            >
-              <Text style={styles.backIcon}>‹</Text>
-            </Pressable>
-            <View style={styles.header}>
-              <Text style={styles.headerTitle}>🥗 Diyabet Dostu Tarifler</Text>
-              <Text style={styles.headerSubtitle}>Az tuzlu, şekersiz ve sağlıklı lezzetler</Text>
-            </View>
+          <View style={styles.header}>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>🥗 Tarifler (Diyabete Uygun)</Text>
+            <Text style={[styles.headerSubtitle, { color: colors.secondaryText }]}>Az tuzlu, şekersiz ve sağlıklı lezzetler</Text>
           </View>
 
           {quickRecipes.length > 0 && (
-            <View style={styles.quickSection}>
-              <Text style={styles.quickTitle}>Sık yaptıkların</Text>
+            <View style={[styles.quickSection, { backgroundColor: isDarkMode ? '#2C2C2E' : '#FFF7ED', borderColor: isDarkMode ? '#3A3A3C' : '#FFE0B2' }]}>
+              <Text style={[styles.quickTitle, { color: isDarkMode ? '#FF9F0A' : '#8D4A0B' }]}>Sık yaptıkların</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
                 {quickRecipes.map((recipe) => (
                   <Pressable
                     key={recipe.id}
-                    style={styles.quickCard}
+                    style={[styles.quickCard, { backgroundColor: colors.cardBackground, borderColor: isDarkMode ? '#3A3A3C' : '#FFE0B2' }]}
                     onPress={() => handleQuickSelect(recipe)}
                   >
-                    <Text style={styles.quickCardTitle}>{recipe.name}</Text>
-                    <Text style={styles.quickCardMeta}>{recipe.calories} kcal • {recipe.prepTime}</Text>
+                    <Text style={[styles.quickCardTitle, { color: colors.text }]}>{recipe.name}</Text>
+                    <Text style={[styles.quickCardMeta, { color: colors.secondaryText }]}>{recipe.calories} kcal • {recipe.prepTime}</Text>
                   </Pressable>
                 ))}
               </ScrollView>
@@ -245,10 +400,10 @@ const HealthyRecipesScreen = ({ navigation }) => {
             {categories.map(cat => (
               <Pressable
                 key={cat}
-                style={[styles.categoryButton, selectedCategory === cat && styles.categoryButtonActive]}
+                style={[styles.categoryButton, { backgroundColor: colors.cardBackground, borderColor: colors.border }, selectedCategory === cat && styles.categoryButtonActive]}
                 onPress={() => setSelectedCategory(cat)}
               >
-                <Text style={[styles.categoryText, selectedCategory === cat && styles.categoryTextActive]}>
+                <Text style={[styles.categoryText, { color: colors.text }, selectedCategory === cat && styles.categoryTextActive]}>
                   {cat}
                 </Text>
               </Pressable>
@@ -256,15 +411,15 @@ const HealthyRecipesScreen = ({ navigation }) => {
           </ScrollView>
 
           {/* Tarifler */}
-          <Text style={styles.sectionTitle}>{filteredRecipes.length} Tarif</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{filteredRecipes.length} Tarif</Text>
           {filteredRecipes.map(recipe => {
             const isGlycemicExpanded = glycemicExpanded[recipe.id];
             return (
-              <View key={recipe.id} style={styles.recipeCard}>
+              <View key={recipe.id} style={[styles.recipeCard, { backgroundColor: colors.cardBackground }]}>
               <Pressable onPress={() => setExpandedRecipe(expandedRecipe === recipe.id ? null : recipe.id)}>
                 <View style={styles.recipeHeader}>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.recipeName}>{recipe.name}</Text>
+                    <Text style={[styles.recipeName, { color: colors.text }]}>{recipe.name}</Text>
                     <Text style={styles.recipeCategory}>{recipe.category}</Text>
                   </View>
                   <View style={styles.recipeStats}>
@@ -273,8 +428,19 @@ const HealthyRecipesScreen = ({ navigation }) => {
                   </View>
                 </View>
 
-                <Pressable style={styles.favoriteButton} onPress={() => handleSaveFavorite(recipe)}>
-                  <Text style={styles.favoriteButtonText}>+ Sık Kullan</Text>
+                <Pressable 
+                  style={[
+                    styles.favoriteButton,
+                    quickRecipes.some(q => q.id === recipe.id) && styles.favoriteButtonActive
+                  ]} 
+                  onPress={() => handleToggleFavorite(recipe)}
+                >
+                  <Text style={[
+                    styles.favoriteButtonText,
+                    quickRecipes.some(q => q.id === recipe.id) && { color: '#fff' }
+                  ]}>
+                    {quickRecipes.some(q => q.id === recipe.id) ? '✓ Sık Kullanılanlardan Çıkar' : '+ Sık Kullan'}
+                  </Text>
                 </Pressable>
 
                 <View style={styles.tagsContainer}>
@@ -287,16 +453,16 @@ const HealthyRecipesScreen = ({ navigation }) => {
 
                 {expandedRecipe === recipe.id && (
                   <View style={styles.recipeDetails}>
-                    <Text style={styles.detailsTitle}>Malzemeler:</Text>
+                    <Text style={[styles.detailsTitle, { color: colors.text }]}>Malzemeler:</Text>
                     {recipe.ingredients.map((ing, idx) => (
-                      <Text key={idx} style={styles.ingredientItem}>• {ing}</Text>
+                      <Text key={idx} style={[styles.ingredientItem, { color: colors.text }]}>• {ing}</Text>
                     ))}
 
-                    <Text style={styles.detailsTitle}>Yapılışı:</Text>
-                    <Text style={styles.instructions}>{recipe.instructions}</Text>
+                    <Text style={[styles.detailsTitle, { color: colors.text }]}>Yapılışı:</Text>
+                    <Text style={[styles.instructions, { color: colors.text }]}>{recipe.instructions}</Text>
 
-                    <Text style={styles.detailsTitle}>Besin Değerleri:</Text>
-                    <Text style={styles.nutrition}>{recipe.nutrition}</Text>
+                    <Text style={[styles.detailsTitle, { color: colors.text }]}>Besin Değerleri:</Text>
+                    <Text style={[styles.nutrition, { color: colors.secondaryText }]}>{recipe.nutrition}</Text>
 
                     {typeof recipe.gi === 'number' && (
                       <View style={styles.metabolicStack}>
@@ -348,6 +514,7 @@ const HealthyRecipesScreen = ({ navigation }) => {
 
         </ScrollView>
       </LinearGradient>
+      <BottomNavBar navigation={navigation} activeKey="HealthyRecipes" />
     </SafeAreaView>
   );
 };
@@ -359,6 +526,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
+    paddingTop: 4,
     paddingBottom: 32,
   },
   headerRow: {
@@ -498,6 +666,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     marginBottom: 10,
+  },
+  favoriteButtonActive: {
+    backgroundColor: '#22c55e',
   },
   favoriteButtonText: {
     fontSize: 12,

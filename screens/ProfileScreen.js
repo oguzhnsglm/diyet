@@ -5,6 +5,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DietContext } from '../context/DietContext';
 import { useTheme } from '../context/ThemeContext';
+import BottomNavBar from '../components/BottomNavBar';
+import BackButton from '../components/BackButton';
 import { PrimaryButton } from '../components/common';
 import { calculateBMI, healthyWeightRange, getTodayISO } from '../logic/utils';
 import { styles, colors } from '../styles';
@@ -21,7 +23,7 @@ const fallbackUser = {
   lastLoginAt: new Date().toISOString(),
 };
 
-const ProfileScreen = () => {
+const ProfileScreenContent = ({ navigation }) => {
   const { user, setUser, reloadUser } = useContext(DietContext);
   const { isDarkMode, toggleTheme, colors } = useTheme();
   const [weight, setWeight] = useState('');
@@ -51,10 +53,6 @@ const ProfileScreen = () => {
       })();
     }, [reloadUser])
   );
-
-  useEffect(() => {
-    syncFromUser(user);
-  }, [user]);
 
   const numericWeight = Number(weight) || Number(activeUser.weightKg) || 0;
   const bmi = calculateBMI(numericWeight, activeUser.heightCm);
@@ -127,6 +125,7 @@ const ProfileScreen = () => {
       dailySugarLimitGr: Number(dailySugar) || baseUser.dailySugarLimitGr,
     };
     await setUser(updated);
+    await reloadUser();
     Alert.alert('Güncellendi', 'Profil bilgilerin kaydedildi.');
   };
 
@@ -141,20 +140,20 @@ const ProfileScreen = () => {
   const rewardTasks = [
     {
       id: 'diet',
-      title: 'Diyet Planına Uydum',
-      description: 'Planner öğünlerini plana uygun tamamladın.',
+      title: 'Diyet Planı',
+      description: 'Öğünleri plana uygun tamamla',
       icon: '🥗',
     },
     {
       id: 'glucose',
-      title: 'Şeker Takibini Yaptım',
-      description: 'Libre ya da glukometre değerini kaydettin.',
+      title: 'Şeker Takibi',
+      description: 'Günlük ölçüm kaydet',
       icon: '🩸',
     },
     {
       id: 'activity',
-      title: 'Hareket Hedefi',
-      description: 'Günde en az 20 dk aktivite ekledin.',
+      title: 'Hareket',
+      description: 'En az 20 dk aktivite',
       icon: '🏅',
     },
   ];
@@ -173,35 +172,87 @@ const ProfileScreen = () => {
   ];
 
   const badgeMessage = rewardUnlocked
-    ? 'Bugünkü üç görevi de tamamladın! Küçük alışkanlıklar büyük korumayı getirir.'
-    : 'Rozeti almak için üç görevi de işaretle. Motivasyonu diri tutmak için hatırlatıcı.';
+    ? 'Günlük görevler tamamlandı!'
+    : 'Rozet için üç görevi tamamla.';
+
+  // Dynamic styles based on theme
+  const dynamicStyles = useMemo(() => ({
+    headerCard: {
+      backgroundColor: isDarkMode ? '#2C2C2E' : '#ffffff',
+      shadowColor: isDarkMode ? '#000' : '#94a3b8',
+    },
+    metricCard: {
+      backgroundColor: isDarkMode ? '#2C2C2E' : '#ffffff',
+      shadowColor: isDarkMode ? '#000' : '#94a3b8',
+    },
+    formCard: {
+      backgroundColor: isDarkMode ? '#2C2C2E' : '#ffffff',
+      shadowColor: isDarkMode ? '#000' : '#cbd5e1',
+    },
+    buttonCard: {
+      backgroundColor: isDarkMode ? '#2C2C2E' : '#ffffff',
+      shadowColor: isDarkMode ? '#000' : '#94a3b8',
+    },
+    input: {
+      borderColor: isDarkMode ? '#3A3A3C' : '#e2e8f0',
+      backgroundColor: isDarkMode ? '#1C1C1E' : '#f8fafc',
+      color: colors.text,
+    },
+    themeTile: {
+      borderColor: isDarkMode ? '#3A3A3C' : '#e2e8f0',
+      backgroundColor: isDarkMode ? '#1C1C1E' : '#f8fafc',
+    },
+    themeTileActive: {
+      borderColor: '#2563eb',
+      backgroundColor: isDarkMode ? '#1e3a8a' : '#dbeafe',
+    },
+    infoCard: {
+      backgroundColor: isDarkMode ? '#1C1C1E' : '#0f172a',
+    },
+    rewardCard: {
+      backgroundColor: isDarkMode ? '#1C1C1E' : '#18122b',
+      borderColor: isDarkMode ? '#3A3A3C' : '#31255a',
+    },
+    rewardTask: {
+      backgroundColor: isDarkMode ? '#2C2C2E' : '#241b3f',
+    },
+    badgeBoard: {
+      backgroundColor: isDarkMode ? '#2C2C2E' : '#241b3f',
+    },
+    badgePill: {
+      backgroundColor: isDarkMode ? '#3A3A3C' : '#1f2937',
+    },
+  }), [isDarkMode, colors]);
 
   return (
     <SafeAreaView style={[profileStyles.container, { backgroundColor: colors.background }]}>
       <LinearGradient colors={isDarkMode ? ['#1C1C1E', '#000000'] : ['#fdfcfb', '#e2ebf0']} style={{ flex: 1 }}>
+        <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
+          <BackButton navigation={navigation} />
+        </View>
         <ScrollView contentContainerStyle={profileStyles.content}>
-          <View style={[profileStyles.headerCard, { backgroundColor: isDarkMode ? '#2C2C2E' : '#FFFFFF' }]}>
+          <View style={[profileStyles.headerCard, dynamicStyles.headerCard, { shadowOpacity: isDarkMode ? 0.3 : 0.25 }]}>
             <Text style={[profileStyles.headerLabel, { color: colors.secondaryText }]}>Profile</Text>
             <Text style={[profileStyles.headerName, { color: colors.text }]}>{activeUser.name}</Text>
             <Text style={[profileStyles.headerSub, { color: colors.secondaryText }]}>Sağlık verilerin tek ekranda</Text>
           </View>
 
           <View style={profileStyles.metricRow}>
-            <View style={profileStyles.metricCard}>
-              <Text style={profileStyles.metricLabel}>Kan Şekeri</Text>
-              <Text style={profileStyles.metricValue}>{formattedGlucose}</Text>
+            <View style={[profileStyles.metricCard, dynamicStyles.metricCard, { shadowOpacity: isDarkMode ? 0.2 : 0.12 }]}>
+              <Text style={[profileStyles.metricLabel, { color: colors.secondaryText }]}>Kan Şekeri</Text>
+              <Text style={[profileStyles.metricValue, { color: colors.text }]}>{formattedGlucose}</Text>
               {formattedGlucoseTime ? (
-                <Text style={profileStyles.metricHint}>{formattedGlucoseTime}</Text>
+                <Text style={[profileStyles.metricHint, { color: colors.secondaryText }]}>{formattedGlucoseTime}</Text>
               ) : null}
             </View>
-            <View style={profileStyles.metricCard}>
-              <Text style={profileStyles.metricLabel}>Güncel Kilo</Text>
-              <Text style={profileStyles.metricValue}>{numericWeight.toFixed(1)} kg</Text>
-              <Text style={profileStyles.metricHint}>BMI {bmi ? bmi.toFixed(1) : '-'} • Boy {activeUser.heightCm} cm</Text>
+            <View style={[profileStyles.metricCard, dynamicStyles.metricCard, { shadowOpacity: isDarkMode ? 0.2 : 0.12 }]}>
+              <Text style={[profileStyles.metricLabel, { color: colors.secondaryText }]}>Güncel Kilo</Text>
+              <Text style={[profileStyles.metricValue, { color: colors.text }]}>{numericWeight.toFixed(1)} kg</Text>
+              <Text style={[profileStyles.metricHint, { color: colors.secondaryText }]}>BMI {bmi ? bmi.toFixed(1) : '-'} • Boy {activeUser.heightCm} cm</Text>
             </View>
           </View>
 
-          <View style={profileStyles.infoCard}>
+          <View style={[profileStyles.infoCard, dynamicStyles.infoCard]}>
             <View style={profileStyles.infoHeader}>
               <Text style={profileStyles.infoTitle}>Kişisel Bilgiler</Text>
               <Text style={[profileStyles.sectionHint, { color: '#cbd5f5', marginBottom: 0 }]}>
@@ -218,149 +269,60 @@ const ProfileScreen = () => {
             </View>
           </View>
 
-          <View style={profileStyles.formCard}>
-            <Text style={profileStyles.sectionTitle}>Hedeflerini Güncelle</Text>
-            <Text style={profileStyles.sectionHint}>Veriler Planner ve Dashboard ile senkron kalır.</Text>
+          <View style={[profileStyles.formCard, dynamicStyles.formCard, { shadowOpacity: isDarkMode ? 0.3 : 0.25 }]}>
+            <Text style={[profileStyles.sectionTitle, { color: colors.text }]}>Hedeflerini Güncelle</Text>
+            <Text style={[profileStyles.sectionHint, { color: colors.secondaryText }]}>Veriler Planner ve Dashboard ile senkron kalır.</Text>
             <View style={profileStyles.inputGroup}>
-              <Text style={profileStyles.inputLabel}>Mevcut Kilo (kg)</Text>
+              <Text style={[profileStyles.inputLabel, { color: colors.secondaryText }]}>Mevcut Kilo (kg)</Text>
               <TextInput
-                style={profileStyles.input}
+                style={[profileStyles.input, dynamicStyles.input]}
                 value={weight}
                 onChangeText={setWeight}
                 keyboardType="numeric"
                 placeholder="Örn: 70"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={colors.secondaryText}
               />
             </View>
             <View style={profileStyles.inputGroup}>
-              <Text style={profileStyles.inputLabel}>Hedef Kilo</Text>
+              <Text style={[profileStyles.inputLabel, { color: colors.secondaryText }]}>Hedef Kilo</Text>
               <TextInput
-                style={profileStyles.input}
+                style={[profileStyles.input, dynamicStyles.input]}
                 value={targetWeight}
                 onChangeText={setTargetWeight}
                 keyboardType="numeric"
                 placeholder="Örn: 60"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={colors.secondaryText}
               />
             </View>
             <View style={profileStyles.inputGroup}>
-              <Text style={profileStyles.inputLabel}>Günlük Kalori</Text>
+              <Text style={[profileStyles.inputLabel, { color: colors.secondaryText }]}>Günlük Kalori</Text>
               <TextInput
-                style={profileStyles.input}
+                style={[profileStyles.input, dynamicStyles.input]}
                 value={dailyCalories}
                 onChangeText={setDailyCalories}
                 keyboardType="numeric"
                 placeholder="Örn: 1800"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={colors.secondaryText}
               />
             </View>
             <View style={profileStyles.inputGroup}>
-              <Text style={profileStyles.inputLabel}>Günlük Şeker Limiti</Text>
+              <Text style={[profileStyles.inputLabel, { color: colors.secondaryText }]}>Günlük Şeker Limiti</Text>
               <TextInput
-                style={profileStyles.input}
+                style={[profileStyles.input, dynamicStyles.input]}
                 value={dailySugar}
                 onChangeText={setDailySugar}
                 keyboardType="numeric"
                 placeholder="Örn: 50"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={colors.secondaryText}
               />
             </View>
             <PrimaryButton label="Kaydet" onPress={onSave} style={{ marginTop: 12 }} />
-          </View>
-
-          <View style={profileStyles.buttonCard}>
-            <View style={profileStyles.buttonHeader}>
-              <Text style={profileStyles.buttonTitle}>Gizlilik</Text>
-              <Text style={profileStyles.buttonSubtitle}>Hesap ve giriş bilgilerini görüntüle</Text>
-            </View>
-            <View style={profileStyles.privacyRow}>
-              <Text style={profileStyles.privacyLabel}>E-posta</Text>
-              <Text style={profileStyles.privacyValue}>{privacyInfo.email}</Text>
-            </View>
-            <View style={profileStyles.privacyRow}>
-              <Text style={profileStyles.privacyLabel}>Telefon</Text>
-              <Text style={profileStyles.privacyValue}>{privacyInfo.phone}</Text>
-            </View>
-            <View style={profileStyles.privacyRow}>
-              <Text style={profileStyles.privacyLabel}>Son giriş</Text>
-              <Text style={profileStyles.privacyValue}>{privacyInfo.lastLogin}</Text>
-            </View>
-            <PrimaryButton
-              label="Giriş bilgilerini düzenle"
-              variant="outline"
-              onPress={() => Alert.alert('Bilgi', 'Bu ekran yakında aktif olacak')}
-              style={profileStyles.secondaryButton}
-            />
-          </View>
-
-          <View style={profileStyles.buttonCard}>
-            <View style={profileStyles.buttonHeader}>
-              <Text style={profileStyles.buttonTitle}>Kişiselleştirme</Text>
-              <Text style={profileStyles.buttonSubtitle}>Arayüz temasını seç</Text>
-            </View>
-            <View style={profileStyles.themeRow}>
-              <Pressable
-                style={[profileStyles.themeTile, !isDarkMode && profileStyles.themeTileActive]}
-                onPress={() => !isDarkMode ? null : toggleTheme()}
-              >
-                <Text style={profileStyles.themeEmoji}>🌤️</Text>
-                <Text style={profileStyles.themeLabel}>Açık</Text>
-                <Text style={profileStyles.themeHint}>Daha parlak arayüz</Text>
-              </Pressable>
-              <Pressable
-                style={[profileStyles.themeTile, isDarkMode && profileStyles.themeTileActive]}
-                onPress={() => isDarkMode ? null : toggleTheme()}
-              >
-                <Text style={profileStyles.themeEmoji}>🌙</Text>
-                <Text style={profileStyles.themeLabel}>Koyu</Text>
-                <Text style={profileStyles.themeHint}>Göz yormayan mod</Text>
-              </Pressable>
-            </View>
-          </View>
-
-          <View style={profileStyles.rewardCard}>
-            <View style={profileStyles.buttonHeader}>
-              <Text style={[profileStyles.buttonTitle, { color: '#f8fafc' }]}>Günlük Motivasyon</Text>
-              <Text style={[profileStyles.buttonSubtitle, { color: '#cbd5f5' }]}>Planner, şeker ve aktivite hedeflerini işaretleyerek rozet kazan.</Text>
-            </View>
-            <View style={profileStyles.rewardTaskList}>
-              {rewardTasks.map((task) => {
-                const done = rewardStatus[task.id];
-                return (
-                  <Pressable
-                    key={task.id}
-                    style={[profileStyles.rewardTask, done && profileStyles.rewardTaskDone]}
-                    onPress={() => toggleReward(task.id)}
-                  >
-                    <Text style={profileStyles.rewardIcon}>{task.icon}</Text>
-                    <View style={{ flex: 1 }}>
-                      <Text style={profileStyles.rewardTitle}>{task.title}</Text>
-                      <Text style={profileStyles.rewardDesc}>{task.description}</Text>
-                    </View>
-                    <Text style={[profileStyles.rewardStatus, done && profileStyles.rewardStatusDone]}>
-                      {done ? 'Tamamlandı' : 'İşaretle'}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-            <View style={profileStyles.badgeBoard}>
-              <View style={[profileStyles.badgePill, rewardUnlocked && profileStyles.badgePillActive]}>
-                <Text style={profileStyles.badgeEmoji}>{rewardUnlocked ? '🌟' : '✨'}</Text>
-                <Text style={profileStyles.badgeLabel}>
-                  {rewardUnlocked ? 'Tam Gün Rozeti' : `${completedRewards}/3 görev`}
-                </Text>
-              </View>
-              <Text style={profileStyles.badgeMessage}>{badgeMessage}</Text>
-            </View>
           </View>
         </ScrollView>
       </LinearGradient>
     </SafeAreaView>
   );
 };
-
-export default ProfileScreen;
 
 const profileStyles = StyleSheet.create({
   container: {
@@ -628,3 +590,12 @@ const profileStyles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+const ProfileScreenWithNav = ({ navigation }) => (
+  <View style={{ flex: 1 }}>
+    <ProfileScreenContent navigation={navigation} />
+    <BottomNavBar navigation={navigation} activeKey="Profile" />
+  </View>
+);
+
+export default ProfileScreenWithNav;

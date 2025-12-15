@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getTwinData } from '../logic/digitalTwin';
+import BottomNavBar from '../components/BottomNavBar';
 
 const DoctorReportScreen = ({ navigation }) => {
   const [reportData, setReportData] = useState(null);
@@ -568,4 +569,13 @@ const styles = StyleSheet.create({
   },
 });
 
-export default DoctorReportScreen;
+function DoctorReportScreenWithNav(props) {
+  return (
+    <>
+      <DoctorReportScreen {...props} />
+      <BottomNavBar activeKey="Diary" />
+    </>
+  );
+}
+
+export default DoctorReportScreenWithNav;

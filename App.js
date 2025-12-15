@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { registerRootComponent } from 'expo';
 import { DietProvider } from './context/DietContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { LanguageProvider } from './context/LanguageContext';
 
 import AuthHomeScreen from './screens/Auth/AuthHomeScreen';
 import LoginScreenNew from './screens/Auth/LoginScreenNew';
@@ -21,6 +22,7 @@ import ProfileScreen from './screens/ProfileScreen';
 import IngredientSearchScreen from './screens/IngredientSearchScreen';
 import DietPlanScreen from './screens/DietPlannerScreen';
 import AddMealScreen from './screens/AddMealScreen';
+import SettingsScreen from './screens/SettingsScreen';
 import TodaySummaryCard from './components/TodaySummaryCard';
 import MilestoneCard from './components/MilestoneCard';
 import ProgressBar from './components/ProgressBar';
@@ -106,6 +108,7 @@ function App() {
   };
 
   return (
+    <LanguageProvider>
     <ThemeProvider>
       <DietProvider>
         <NavigationContainer>
@@ -115,24 +118,25 @@ function App() {
                 <Stack.Screen name="Main" options={{ headerShown: false }}>
                   {(props) => <MainScreen {...props} onLogout={handleLogout} />}
                 </Stack.Screen>
-                <Stack.Screen name="WaterTracker" component={WaterTrackerScreen} options={{ title: 'Su Takibi' }} />
-                <Stack.Screen name="PersonalInsights" component={PersonalInsightsScreen} options={{ title: 'Kişisel İçgörüler' }} />
-                <Stack.Screen name="DietPlanner" component={DietPlanScreen} options={{ title: 'Diyet Planı' }} />
-                <Stack.Screen name="DietPlan" component={DietPlanScreen} options={{ title: 'Diyet Planı' }} />
-                <Stack.Screen name="HealthyRecipes" component={HealthyRecipesScreen} options={{ title: 'Sağlıklı Tarifler' }} />
-                <Stack.Screen name="GlucoseCalendar" component={GlucoseCalendarScreen} options={{ title: 'Glukoz Takvimi' }} />
-                <Stack.Screen name="StressSleep" component={StressSleepAnalysisScreen} options={{ title: 'Stres & Uyku' }} />
-                <Stack.Screen name="BloodSugar" component={BloodSugarScreen} options={{ title: 'Kan Şekeri' }} />
-                <Stack.Screen name="VoiceCoach" component={VoiceCoachScreen} options={{ title: 'Sesli Koç' }} />
-                <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profil' }} />
-                <Stack.Screen name="IngredientSearch" component={IngredientSearchScreen} options={{ title: 'Malzeme Ara' }} />
-                <Stack.Screen name="AddMeal" component={AddMealScreen} options={{ title: 'Yemek Ekle' }} />
-                <Stack.Screen name="FoodCamera" component={FoodCameraScreen} options={{ title: 'Yemek Kamerası' }} />
-                <Stack.Screen name="DiabetesInfo" component={DiabetesInfoScreen} options={{ title: 'Diyabet Bilgisi' }} />
-                <Stack.Screen name="DoctorReport" component={DoctorReportScreen} options={{ title: 'Doktor Raporu' }} />
-                <Stack.Screen name="HealthSync" component={HealthSyncScreen} options={{ title: 'Sağlık Senkronizasyonu' }} />
-                <Stack.Screen name="LibreStats" component={LibreStatsScreen} options={{ title: 'İstatistikler' }} />
-                <Stack.Screen name="UrineTracker" component={UrineTrackerScreen} options={{ title: 'İdrar Takibi' }} />
+                <Stack.Screen name="WaterTracker" component={WaterTrackerScreen} options={{ headerShown: false }} />
+                <Stack.Screen name="PersonalInsights" component={PersonalInsightsScreen} options={{ headerShown: false }} />
+                <Stack.Screen name="DietPlanner" component={DietPlanScreen} options={{ headerShown: false }} />
+                <Stack.Screen name="DietPlan" component={DietPlanScreen} options={{ headerShown: false }} />
+                <Stack.Screen name="HealthyRecipes" component={HealthyRecipesScreen} options={{ headerShown: false }} />
+                <Stack.Screen name="GlucoseCalendar" component={GlucoseCalendarScreen} options={{ headerShown: false }} />
+                <Stack.Screen name="StressSleep" component={StressSleepAnalysisScreen} options={{ headerShown: false }} />
+                <Stack.Screen name="BloodSugar" component={BloodSugarScreen} options={{ headerShown: false }} />
+                <Stack.Screen name="VoiceCoach" component={VoiceCoachScreen} options={{ headerShown: false }} />
+                <Stack.Screen name="Profile" component={ProfileScreen} options={{ headerShown: false }} />
+                <Stack.Screen name="IngredientSearch" component={IngredientSearchScreen} options={{ headerShown: false }} />
+                <Stack.Screen name="AddMeal" component={AddMealScreen} options={{ headerShown: false }} />
+                <Stack.Screen name="FoodCamera" component={FoodCameraScreen} options={{ headerShown: false }} />
+                <Stack.Screen name="DiabetesInfo" component={DiabetesInfoScreen} options={{ headerShown: false }} />
+                <Stack.Screen name="DoctorReport" component={DoctorReportScreen} options={{ headerShown: false }} />
+                <Stack.Screen name="HealthSync" component={HealthSyncScreen} options={{ headerShown: false }} />
+                <Stack.Screen name="LibreStats" component={LibreStatsScreen} options={{ headerShown: false }} />
+                <Stack.Screen name="UrineTracker" component={UrineTrackerScreen} options={{ headerShown: false }} />
+                <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
             </>
           ) : (
             <Stack.Screen name="Auth" options={{ headerShown: false }}>
@@ -143,6 +147,7 @@ function App() {
         </NavigationContainer>
       </DietProvider>
     </ThemeProvider>
+  </LanguageProvider>
   );
 }
 

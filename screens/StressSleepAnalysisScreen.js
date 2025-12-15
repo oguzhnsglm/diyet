@@ -11,6 +11,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { addSleepRecord, addStressRecord, getTwinData } from '../logic/digitalTwin';
 import { getHealthData, getTodayHealthSummary } from '../logic/healthSync';
+import BottomNavBar from '../components/BottomNavBar';
 
 const StressSleepAnalysisScreen = ({ navigation }) => {
   const [selectedTab, setSelectedTab] = useState('sleep'); // 'sleep' or 'stress'
@@ -661,4 +662,13 @@ const styles = StyleSheet.create({
   },
 });
 
-export default StressSleepAnalysisScreen;
+function StressSleepAnalysisScreenWithNav(props) {
+  return (
+    <>
+      <StressSleepAnalysisScreen {...props} />
+      <BottomNavBar activeKey="Diary" />
+    </>
+  );
+}
+
+export default StressSleepAnalysisScreenWithNav;

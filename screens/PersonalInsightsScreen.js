@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getPersonalizedInsights, getTwinData } from '../logic/digitalTwin';
+import BottomNavBar from '../components/BottomNavBar';
 
 const PersonalInsightsScreen = ({ navigation }) => {
   const [insights, setInsights] = useState([]);
@@ -218,16 +219,6 @@ const PersonalInsightsScreen = ({ navigation }) => {
         ))}
       </View>
 
-      {/* Motivasyon */}
-      <View style={styles.motivationBox}>
-        <Text style={styles.motivationIcon}>🌟</Text>
-        <Text style={styles.motivationTitle}>Sen Harikasın!</Text>
-        <Text style={styles.motivationText}>
-          Diyabeti yönetmek kolay değil ama sen her gün bir adım daha ileri gidiyorsun. 
-          Bu küçük değişiklikler, uzun vadede büyük fark yaratacak!
-        </Text>
-      </View>
-
       <View style={styles.bottomPadding} />
     </ScrollView>
   );
@@ -361,4 +352,13 @@ const styles = StyleSheet.create({
   },
 });
 
-export default PersonalInsightsScreen;
+function PersonalInsightsScreenWithNav(props) {
+  return (
+    <>
+      <PersonalInsightsScreen {...props} />
+      <BottomNavBar activeKey="Diary" />
+    </>
+  );
+}
+
+export default PersonalInsightsScreenWithNav;

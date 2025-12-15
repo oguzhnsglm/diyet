@@ -1,6 +1,7 @@
 import React from 'react';
 import { ScrollView, Text, View, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import BottomNavBar from '../components/BottomNavBar';
 
 const DiabetesInfoScreen = () => {
   return (
@@ -167,4 +168,13 @@ const styles = StyleSheet.create({
   },
 });
 
-export default DiabetesInfoScreen;
+function DiabetesInfoScreenWithNav() {
+  return (
+    <>
+      <DiabetesInfoScreen />
+      <BottomNavBar activeKey="Diary" />
+    </>
+  );
+}
+
+export default DiabetesInfoScreenWithNav;

@@ -21,8 +21,9 @@ import {
   isHealthSyncEnabled,
   setHealthSyncEnabled,
 } from '../logic/healthSync';
+import BottomNavBar from '../components/BottomNavBar';
 
-export default function HealthSyncScreen({ navigation }) {
+function HealthSyncScreen({ navigation }) {
   const [syncEnabled, setSyncEnabled] = useState(false);
   const [permissions, setPermissions] = useState({ granted: false });
   const [lastSync, setLastSync] = useState(null);
@@ -507,3 +508,14 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
 });
+
+function HealthSyncScreenWithNav(props) {
+  return (
+    <>
+      <HealthSyncScreen {...props} />
+      <BottomNavBar activeKey="Diary" />
+    </>
+  );
+}
+
+export default HealthSyncScreenWithNav;

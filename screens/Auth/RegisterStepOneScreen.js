@@ -9,6 +9,7 @@ const STRINGS = {
   nameLabel: 'Ad / İsim',
   weightLabel: 'Kilo',
   heightLabel: 'Boy',
+  waterGoalLabel: 'Günlük Su Hedefi (1 bardak = 250 ml)',
   continue: 'Devam et',
 };
 
@@ -22,6 +23,7 @@ export default function RegisterStepOneScreen() {
   const [height, setHeight] = useState('');
   const [heightFeet, setHeightFeet] = useState('');
   const [heightInch, setHeightInch] = useState('');
+  const [waterGoal, setWaterGoal] = useState('8');
   const [weightUnit, setWeightUnit] = useState('kg');
   const [heightUnit, setHeightUnit] = useState('cm');
 
@@ -45,6 +47,7 @@ export default function RegisterStepOneScreen() {
       name: name.trim(),
       weight: { unit: weightUnit, value: Number(weight) },
       height: heightValue,
+      waterGoal: Number(waterGoal) || 8,
     };
 
     navigation.navigate('RegisterStepTwo', { userBasicData });
@@ -142,6 +145,14 @@ export default function RegisterStepOneScreen() {
               ))}
             </View>
           </View>
+
+          <AuthTextInput
+            label={STRINGS.waterGoalLabel}
+            placeholder="8"
+            value={waterGoal}
+            onChangeText={setWaterGoal}
+            keyboardType="numeric"
+          />
 
           <AuthButton
             label={STRINGS.continue}

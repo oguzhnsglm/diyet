@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import Svg, { Path, Circle } from 'react-native-svg';
+import BottomNavBar from '../components/BottomNavBar';
 
 const UrineTrackerScreen = ({ navigation }) => {
   const { colors } = useTheme();
@@ -21,7 +22,7 @@ const UrineTrackerScreen = ({ navigation }) => {
   // İdrar renkleri (açıktan koyuya)
   const urineColors = [
     { id: 1, name: 'Çok Açık', color: '#FFFACD', status: 'Çok iyi hidrasyon', icon: '💧' },
-    { id: 2, name: 'Açık Sarı', color: '#FFEB99', status: 'İyi hidrasyon', icon: '✅' },
+    { id: 2, name: 'Açık Sarı', color: '#FFEB99', status: 'Sağlıklı', icon: '✅' },
     { id: 3, name: 'Sarı', color: '#FFD700', status: 'Normal', icon: '😊' },
     { id: 4, name: 'Koyu Sarı', color: '#FFA500', status: 'Hafif susuz', icon: '⚠️' },
     { id: 5, name: 'Turuncu', color: '#FF8C00', status: 'Susuz - Su için!', icon: '🚨' },
@@ -179,22 +180,12 @@ const UrineTrackerScreen = ({ navigation }) => {
               <Text style={[styles.summaryValue, { color: colors.text }]}>{todayRecords.length}</Text>
               <Text style={[styles.summaryLabel, { color: colors.secondaryText }]}>İdrar Sayısı</Text>
             </View>
-            <View style={styles.summaryDivider} />
-            <View style={styles.summaryItem}>
-              <Text style={[styles.summaryValue, { color: colors.text }]}>
-                {todayRecords.length >= 4 && todayRecords.length <= 8 ? '✅' : '⚠️'}
-              </Text>
-              <Text style={[styles.summaryLabel, { color: colors.secondaryText }]}>Sıklık</Text>
-            </View>
           </View>
         </View>
 
         {/* Renk Seçimi */}
         <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>İdrar Rengi</Text>
-          <Text style={[styles.sectionSubtitle, { color: colors.secondaryText }]}>
-            Renk suyun durumunuzu gösterir
-          </Text>
           
           <View style={styles.colorGrid}>
             {urineColors.map((item) => (
@@ -561,4 +552,13 @@ const styles = StyleSheet.create({
   },
 });
 
-export default UrineTrackerScreen;
+function UrineTrackerScreenWithNav(props) {
+  return (
+    <>
+      <UrineTrackerScreen {...props} />
+      <BottomNavBar activeKey="Diary" />
+    </>
+  );
+}
+
+export default UrineTrackerScreenWithNav;

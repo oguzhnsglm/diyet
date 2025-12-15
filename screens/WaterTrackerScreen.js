@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { SafeAreaView, View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import BottomNavBar from '../components/BottomNavBar';
 
 const DEFAULT_GOAL = 74;
 
@@ -145,4 +146,13 @@ const styles = StyleSheet.create({
   },
 });
 
-export default WaterTrackerScreen;
+function WaterTrackerScreenWithNav() {
+  return (
+    <>
+      <WaterTrackerScreen />
+      <BottomNavBar activeKey="Diary" />
+    </>
+  );
+}
+
+export default WaterTrackerScreenWithNav;

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { SafeAreaView, ScrollView, Text, View, Pressable, StyleSheet, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import BottomNavBar from '../components/BottomNavBar';
 
 const INGREDIENTS = [
   // Protein
@@ -478,4 +479,13 @@ const styles = StyleSheet.create({
   },
 });
 
-export default IngredientSearchScreen;
+function IngredientSearchScreenWithNav(props) {
+  return (
+    <>
+      <IngredientSearchScreen {...props} />
+      <BottomNavBar activeKey="HealthyRecipes" />
+    </>
+  );
+}
+
+export default IngredientSearchScreenWithNav;

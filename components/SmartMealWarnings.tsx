@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
 
 type Props = {
   gi: number;
@@ -9,6 +10,8 @@ type Props = {
 };
 
 const SmartMealWarnings: React.FC<Props> = ({ gi, carbGrams, sugarGrams, protein }) => {
+  const { isDarkMode, colors } = useTheme();
+  
   const warnings = useMemo(() => {
     const messages: string[] = [];
 
@@ -40,10 +43,13 @@ const SmartMealWarnings: React.FC<Props> = ({ gi, carbGrams, sugarGrams, protein
   }, [gi, carbGrams, sugarGrams, protein]);
 
   return (
-    <View style={styles.card}>
-      <Text style={styles.title}>⚠️ Öğün Öncesi Uyarılar</Text>
+    <View style={[styles.card, { 
+      backgroundColor: isDarkMode ? '#2C2C2E' : '#fff7ed',
+      borderColor: isDarkMode ? '#3A3A3C' : '#fed7aa',
+    }]}>
+      <Text style={[styles.title, { color: isDarkMode ? '#FF9F0A' : '#c2410c' }]}>⚠️ Öğün Öncesi Uyarılar</Text>
       {warnings.map((w, i) => (
-        <Text key={i} style={styles.warning}>
+        <Text key={i} style={[styles.warning, { color: isDarkMode ? colors.secondaryText : '#7c2d12' }]}>
           • {w}
         </Text>
       ))}
@@ -57,11 +63,9 @@ const styles = StyleSheet.create({
   card: {
     marginTop: 8,
     padding: 12,
-    backgroundColor: '#fff7ed',
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#fed7aa',
   },
-  title: { fontSize: 14, fontWeight: '600', color: '#c2410c', marginBottom: 4 },
-  warning: { fontSize: 12, color: '#7c2d12' },
+  title: { fontSize: 14, fontWeight: '600', marginBottom: 4 },
+  warning: { fontSize: 12 },
 });

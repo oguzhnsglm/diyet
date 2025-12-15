@@ -14,6 +14,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { addMealRecord, predictBloodSugarAfterMeal, getSimilarMealsFromHistory } from '../logic/digitalTwin';
+import BottomNavBar from '../components/BottomNavBar';
 
 const FoodCameraScreen = ({ navigation }) => {
   const [photoUri, setPhotoUri] = useState(null);
@@ -652,4 +653,13 @@ const styles = StyleSheet.create({
   },
 });
 
-export default FoodCameraScreen;
+function FoodCameraScreenWithNav(props) {
+  return (
+    <>
+      <FoodCameraScreen {...props} />
+      <BottomNavBar activeKey="Diary" />
+    </>
+  );
+}
+
+export default FoodCameraScreenWithNav;

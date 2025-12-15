@@ -1,15 +1,20 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { SafeAreaView, ScrollView, Text, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { DietContext } from '../context/DietContext';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
+import BottomNavBar from '../components/BottomNavBar';
+import BackButton from '../components/BackButton';
 import { PrimaryButton, MealTypeSelector } from '../components/common';
 import { getTodayISO } from '../logic/utils';
+import { estimateFoodNutrition } from '../logic/foodEstimator';
 import { styles, colors } from '../styles';
 
 const AddMealScreen = ({ navigation, route }) => {
   const { addMeal } = useContext(DietContext);
   const { isDarkMode, colors: themeColors } = useTheme();
+  const { t } = useLanguage();
   const preset = route?.params?.preset || {};
   const [mealType, setMealType] = useState(preset.mealType || 'kahvaltı');
   const [foodName, setFoodName] = useState(preset.foodName || '');
@@ -18,6 +23,36 @@ const AddMealScreen = ({ navigation, route }) => {
     preset.sugarGrams !== undefined ? String(preset.sugarGrams) : ''
   );
   const [errors, setErrors] = useState({});
+  const [aiEstimate, setAiEstimate] = useState(null);
+
+  // Yemek adı değiştiğinde AI tahmini yap ve direkt uygla (debounced)
+  useEffect(() => {
+    if (foodName.trim().length < 3) {
+      setAiEstimate(null);
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      const estimate = estimateFoodNutrition(foodName);
+      setAiEstimate(estimate);
+      
+      // Otomatik uygula (confidence > 50 ise)
+      if (estimate && estimate.source !== 'none' && estimate.confidence > 50) {
+        setCalories(String(estimate.calories));
+        setSugarGrams(String(estimate.sugar));
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [foodName]);
+
+  // AI tahminini uygula
+  const applyAiEstimate = () => {
+    if (aiEstimate && aiEstimate.source !== 'none') {
+      setCalories(String(aiEstimate.calories));
+      setSugarGrams(String(aiEstimate.sugar));
+    }
+  };
 
   const validate = () => {
     const newErrors = {};
@@ -45,26 +80,53 @@ const AddMealScreen = ({ navigation, route }) => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]}>
       <LinearGradient colors={isDarkMode ? ['#1C1C1E', '#000000'] : [colors.bgGradientStart, colors.bgGradientEnd]} style={{ flex: 1 }}>
+        <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
+          <BackButton navigation={navigation} />
+        </View>
         <ScrollView contentContainerStyle={styles.form}>
           <View style={[styles.card, { marginBottom: 24, backgroundColor: themeColors.cardBackground }]}>
-            <Text style={[styles.title, { color: themeColors.text }]}>Öğün Ekle</Text>
-            <Text style={[styles.muted, { color: themeColors.secondaryText }]}>Yediğiniz yemeği ve besin değerlerini kaydedin</Text>
+            <Text style={[styles.title, { color: themeColors.text }]}>{t('addMealScreen.addMeal')}</Text>
+            <Text style={[styles.muted, { color: themeColors.secondaryText }]}>{t('addMealScreen.subtitle')}</Text>
           </View>
 
-          <Text style={[styles.label, { color: themeColors.text }]}>Öğün Türü</Text>
+          <Text style={[styles.label, { color: themeColors.text }]}>{t('addMealScreen.mealType')}</Text>
           <MealTypeSelector value={mealType} onChange={setMealType} />
 
-          <Text style={[styles.label, { color: themeColors.text }]}>Yemek Adı</Text>
+          <Text style={[styles.label, { color: themeColors.text }]}>{t('addMealScreen.mealName')}</Text>
           <TextInput
             style={[styles.input, { backgroundColor: themeColors.cardBackground, color: themeColors.text, borderColor: themeColors.border }]}
-            placeholder="Ne yediniz?"
+            placeholder={t('addMealScreen.placeholder')}
             placeholderTextColor={themeColors.secondaryText}
             value={foodName}
             onChangeText={setFoodName}
           />
           {errors.foodName && <Text style={styles.error}>{errors.foodName}</Text>}
 
-          <Text style={[styles.label, { color: themeColors.text }]}>Kalori Miktarı</Text>
+          {/* AI Tahmin Kartı */}
+          {aiEstimate && aiEstimate.source !== 'none' && (
+            <View 
+              style={{
+                backgroundColor: aiEstimate.confidence > 70 ? '#dcfce7' : '#fef9c3',
+                padding: 12,
+                borderRadius: 12,
+                marginVertical: 8,
+                borderWidth: 1,
+                borderColor: aiEstimate.confidence > 70 ? '#86efac' : '#fde047'
+              }}
+            >
+              <Text style={{ fontSize: 13, color: '#374151', marginBottom: 4 }}>
+                {aiEstimate.message}
+              </Text>
+              <Text style={{ fontSize: 15, fontWeight: '600', color: '#111827' }}>
+                📊 {aiEstimate.calories} kkal • 🍬 {aiEstimate.sugar}g şeker
+              </Text>
+              <Text style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>
+                ✅ Otomatik uygulandı
+              </Text>
+            </View>
+          )}
+
+          <Text style={[styles.label, { color: themeColors.text }]}>Kalori Miktarı (tahmini)</Text>
           <TextInput
             style={[styles.input, { backgroundColor: themeColors.cardBackground, color: themeColors.text, borderColor: themeColors.border }]}
             placeholder="Kalori (kcal)"
@@ -75,11 +137,11 @@ const AddMealScreen = ({ navigation, route }) => {
           />
           {errors.calories && <Text style={styles.error}>{errors.calories}</Text>}
 
-          <Text style={styles.label}>Şeker Miktarı (Opsiyonel)</Text>
+          <Text style={[styles.label, { color: themeColors.text }]}>Şeker Miktarı (tahmini)</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: themeColors.cardBackground, color: themeColors.text, borderColor: themeColors.border }]}
             placeholder="Şeker (gram)"
-            placeholderTextColor={colors.textLight}
+            placeholderTextColor={themeColors.secondaryText}
             keyboardType="numeric"
             value={sugarGrams}
             onChangeText={setSugarGrams}
@@ -92,4 +154,13 @@ const AddMealScreen = ({ navigation, route }) => {
   );
 };
 
-export default AddMealScreen;
+function AddMealScreenWithNav(props) {
+  return (
+    <>
+      <AddMealScreen {...props} />
+      <BottomNavBar navigation={props.navigation} activeKey="Diary" />
+    </>
+  );
+}
+
+export default AddMealScreenWithNav;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext, useMemo } from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -13,6 +13,8 @@ import {
 import Svg, { Circle, Path, G, Rect } from 'react-native-svg';
 import BottomNavBar from '../components/BottomNavBar';
 import { useTheme } from '../context/ThemeContext';
+import { DietContext } from '../context/DietContext';
+import { useLanguage } from '../context/LanguageContext';
 
 // Apple Health entegrasyonu
 let appleHealthSync = null;
@@ -26,19 +28,31 @@ if (Platform.OS === 'ios') {
 
 const MainScreen = ({ navigation }) => {
   const { isDarkMode, toggleTheme, colors } = useTheme();
+  const { meals, refreshTodayMeals, user } = useContext(DietContext);
+  const { t } = useLanguage();
   const [refreshing, setRefreshing] = useState(false);
   const [waterCount, setWaterCount] = useState(0);
   const [urineCount, setUrineCount] = useState(0);
-  const [stepsCount, setStepsCount] = useState(5847);
-  const [caloriesConsumed, setCaloriesConsumed] = useState(1240);
-  const [activeMinutes, setActiveMinutes] = useState(32);
+  const [stepsCount, setStepsCount] = useState(0);
+  const [caloriesConsumed, setCaloriesConsumed] = useState(0);
+  const [activeMinutes, setActiveMinutes] = useState(0);
   const [heartRate, setHeartRate] = useState(72);
-  const [sleepData, setSleepData] = useState('7sa 24dk');
+  const [sleepData, setSleepData] = useState('0sa 0dk');
   const [healthSyncEnabled, setHealthSyncEnabled] = useState(false);
 
   const CALORIE_GOAL = 2000;
   const STEPS_GOAL = 10000;
-  const WATER_GOAL = 8;
+  const WATER_GOAL = useMemo(() => user?.waterGoal || 8, [user?.waterGoal]);
+
+  // Gerçek kalori hesaplama
+  useEffect(() => {
+    if (meals && meals.length > 0) {
+      const totalCalories = meals.reduce((sum, meal) => sum + (meal.calories || 0), 0);
+      setCaloriesConsumed(totalCalories);
+    } else {
+      setCaloriesConsumed(0);
+    }
+  }, [meals]);
 
   // İdrar sayacını yükle
   useEffect(() => {
@@ -69,11 +83,19 @@ const MainScreen = ({ navigation }) => {
         console.log('✅ Apple Health başarıyla bağlandı');
       } catch (error) {
         console.log('⚠️ Apple Health başlatılamadı:', error);
-        Alert.alert(
-          'Apple Health',
-          'Sağlık verilerinizi senkronize etmek için Apple Health erişimine izin verin.',
-          [{ text: 'Tamam' }]
-        );
+        
+        // Alert'i sadece bir kez göster
+        const { default: AsyncStorage } = await import('@react-native-async-storage/async-storage');
+        const alertShown = await AsyncStorage.getItem('appleHealthAlertShown');
+        
+        if (!alertShown) {
+          Alert.alert(
+            'Apple Health',
+            'Sağlık verilerinizi senkronize etmek için Apple Health erişimine izin verin.',
+            [{ text: 'Tamam' }]
+          );
+          await AsyncStorage.setItem('appleHealthAlertShown', 'true');
+        }
       }
     };
 
@@ -155,6 +177,10 @@ const MainScreen = ({ navigation }) => {
     if (appleHealthSync && healthSyncEnabled) {
       await syncHealthData();
     }
+    // Günlük öğünleri yenile
+    if (refreshTodayMeals) {
+      await refreshTodayMeals();
+    }
     await new Promise(resolve => setTimeout(resolve, 800));
     setRefreshing(false);
   };
@@ -171,13 +197,13 @@ const MainScreen = ({ navigation }) => {
       unit: 'kkal'
     },
     { 
-      id: 'exercise',
-      progress: activeMinutes / 60,
-      color: '#32D74B',
-      label: 'Egzersiz',
-      value: activeMinutes,
-      goal: 60,
-      unit: 'dk'
+      id: 'urine',
+      progress: urineCount / 6,
+      color: '#FF9500',
+      label: 'İdrar',
+      value: urineCount,
+      goal: 6,
+      unit: 'kez'
     },
     { 
       id: 'stand',
@@ -207,16 +233,13 @@ const MainScreen = ({ navigation }) => {
         <View style={[styles.headerSection, { backgroundColor: colors.background }]}>
           <View style={styles.headerRow}>
             <View>
-              <Text style={[styles.largeTitle, { color: colors.text }]}>Özet</Text>
+              <Text style={[styles.largeTitle, { color: colors.text }]}>{t('mainScreen.summary')}</Text>
               <Text style={[styles.dateSubtitle, { color: colors.secondaryText }]}>{new Date().toLocaleDateString('tr-TR', { 
                 weekday: 'long', 
                 day: 'numeric', 
                 month: 'long' 
               })}</Text>
             </View>
-            <Pressable onPress={toggleTheme} style={styles.themeToggle}>
-              <Text style={styles.themeIcon}>{isDarkMode ? '☀️' : '🌙'}</Text>
-            </Pressable>
           </View>
         </View>
 
@@ -225,7 +248,7 @@ const MainScreen = ({ navigation }) => {
           <View style={[styles.achievementBanner, { backgroundColor: colors.success + '15', borderColor: colors.success }]}>
             <Text style={styles.achievementIcon}>🎉</Text>
             <Text style={[styles.achievementText, { color: colors.success }]}>
-              Tebrikler! Günlük su hedefini tamamladın!
+              {t('mainScreen.waterGoal')} 🏆
             </Text>
           </View>
         )}
@@ -308,7 +331,7 @@ const MainScreen = ({ navigation }) => {
             />
             <QuickActionButton
               icon="glucose"
-              label="Şeker Ölç"
+              label={t('mainScreen.measureGlucose')}
               color="#FF3B30"
               onPress={() => navigation.navigate('BloodSugar')}
               colors={colors}
@@ -332,7 +355,7 @@ const MainScreen = ({ navigation }) => {
 
         {/* Today's Summary */}
         <View style={[styles.summaryCard, { backgroundColor: colors.cardBackground }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Bugünün Özeti</Text>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>{t('mainScreen.todaySummary')}</Text>
           <View style={styles.summaryRow}>
             <Text style={[styles.summaryLabel, { color: colors.secondaryText }]}>Alınan Kalori</Text>
             <Text style={[styles.summaryValue, { color: colors.text }]}>{caloriesConsumed} kkal</Text>
@@ -351,10 +374,9 @@ const MainScreen = ({ navigation }) => {
         <View style={styles.menuSection}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Sağlık & Fitness</Text>
           {[
-            { title: 'Diyet Planı', icon: 'calendar', screen: 'DietPlanner', color: '#FF9500' },
-            { title: 'Sağlıklı Tarifler', icon: 'meal', screen: 'HealthyRecipes', color: '#32D74B' },
-            { title: 'Glukoz Takibi', icon: 'heart', screen: 'GlucoseCalendar', color: '#FF3B30' },
-            { title: 'Ayarlar', icon: 'settings', screen: 'Profile', color: '#8E8E93' },
+            { title: t('mainScreen.dietPlan'), icon: 'calendar', screen: 'DietPlanner', color: '#FF9500' },
+            { title: t('mainScreen.recipes'), icon: 'meal', screen: 'HealthyRecipes', color: '#32D74B' },
+            { title: t('mainScreen.glucoseTracking'), icon: 'heart', screen: 'GlucoseCalendar', color: '#FF3B30' },
           ].map((item, index) => (
             <Pressable
               key={index}

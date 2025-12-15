@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
 
 type Props = {
   gi: number; // glisemik indeks (0-100)
@@ -68,6 +69,7 @@ const classifyGL = (value: number): Indicator => {
 };
 
 const GlycemicInfoBadge: React.FC<Props> = ({ gi, carbGrams }) => {
+  const { isDarkMode, colors } = useTheme();
   const isZeroCarb = carbGrams <= 0;
   const glycemicLoad = useMemo(() => (gi * carbGrams) / 100, [gi, carbGrams]);
   const giInfo = useMemo(() => classifyGI(gi), [gi]);
@@ -119,18 +121,25 @@ const GlycemicInfoBadge: React.FC<Props> = ({ gi, carbGrams }) => {
           title={`GI: ${gi}`}
           info={giInfo}
           percent={clampPercent((gi / 100) * 100)}
+          isDarkMode={isDarkMode}
+          colors={colors}
         />
         <IndicatorCard
           title={isZeroCarb ? 'GY: 0 (yok)' : `GY: ${glycemicLoad.toFixed(1)}`}
           info={glInfo}
           percent={clampPercent((glycemicLoad / 30) * 100)}
           helper={isZeroCarb ? 'Karbonhidrat yok → glisemik yük oluşmaz.' : `Karbonhidrat: ${carbGrams} g`}
+          isDarkMode={isDarkMode}
+          colors={colors}
         />
       </View>
 
-      <View style={[styles.summaryCard, { borderLeftColor: summary.color }]}>
+      <View style={[styles.summaryCard, { 
+        borderLeftColor: summary.color,
+        backgroundColor: colors.cardBackground,
+      }]}>
         <Text style={[styles.summaryTitle, { color: summary.color }]}>{summary.title}</Text>
-        <Text style={styles.summaryText}>{summary.note}</Text>
+        <Text style={[styles.summaryText, { color: colors.secondaryText }]}>{summary.note}</Text>
       </View>
     </View>
   );
@@ -141,17 +150,22 @@ type IndicatorCardProps = {
   info: Indicator;
   percent: number;
   helper?: string;
+  isDarkMode: boolean;
+  colors: any;
 };
 
-const IndicatorCard: React.FC<IndicatorCardProps> = ({ title, info, percent, helper }) => (
-  <View style={[styles.badge, { borderColor: info.color }]}> 
+const IndicatorCard: React.FC<IndicatorCardProps> = ({ title, info, percent, helper, isDarkMode, colors }) => (
+  <View style={[styles.badge, { 
+    borderColor: info.color,
+    backgroundColor: isDarkMode ? '#1C1C1E' : '#f9fafb',
+  }]}> 
     <Text style={[styles.badgeTitle, { color: info.color }]}>{title}</Text>
-    <Text style={styles.badgeSub}>{info.label}</Text>
-    <View style={styles.progressTrack}>
+    <Text style={[styles.badgeSub, { color: colors.secondaryText }]}>{info.label}</Text>
+    <View style={[styles.progressTrack, { backgroundColor: isDarkMode ? '#2C2C2E' : '#e2e8f0' }]}>
       <View style={[styles.progressFill, { width: `${percent}%`, backgroundColor: info.color }]} />
     </View>
-    <Text style={styles.badgeDesc}>{info.description}</Text>
-    {helper && <Text style={styles.helperText}>{helper}</Text>}
+    <Text style={[styles.badgeDesc, { color: colors.secondaryText }]}>{info.description}</Text>
+    {helper && <Text style={[styles.helperText, { color: colors.secondaryText, opacity: 0.7 }]}>{helper}</Text>}
   </View>
 );
 
@@ -171,7 +185,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 8,
-    backgroundColor: '#f9fafb',
   },
   badgeTitle: {
     fontSize: 13,
@@ -179,23 +192,19 @@ const styles = StyleSheet.create({
   },
   badgeSub: {
     fontSize: 11,
-    color: '#475569',
     marginBottom: 6,
   },
   badgeDesc: {
     fontSize: 11,
-    color: '#475569',
     marginTop: 6,
   },
   helperText: {
     fontSize: 10,
-    color: '#94a3b8',
     marginTop: 4,
   },
   progressTrack: {
     height: 6,
     borderRadius: 999,
-    backgroundColor: '#e2e8f0',
     overflow: 'hidden',
   },
   progressFill: {
@@ -206,7 +215,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     padding: 10,
     borderRadius: 12,
-    backgroundColor: '#fff',
     borderLeftWidth: 4,
   },
   summaryTitle: {
@@ -216,6 +224,5 @@ const styles = StyleSheet.create({
   },
   summaryText: {
     fontSize: 12,
-    color: '#475569',
   },
 });
