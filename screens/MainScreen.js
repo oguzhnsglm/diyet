@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -12,9 +12,6 @@ import {
 } from 'react-native';
 import Svg, { Circle, Path, G, Rect } from 'react-native-svg';
 import BottomNavBar from '../components/BottomNavBar';
-import { useTheme } from '../context/ThemeContext';
-import { DietContext } from '../context/DietContext';
-import { useLanguage } from '../context/LanguageContext';
 
 // Apple Health entegrasyonu
 let appleHealthSync = null;
@@ -27,46 +24,18 @@ if (Platform.OS === 'ios') {
 }
 
 const MainScreen = ({ navigation }) => {
-  const { isDarkMode, toggleTheme, colors } = useTheme();
-  const { meals, refreshTodayMeals, user } = useContext(DietContext);
-  const { t } = useLanguage();
   const [refreshing, setRefreshing] = useState(false);
   const [waterCount, setWaterCount] = useState(0);
-  const [urineCount, setUrineCount] = useState(0);
-  const [stepsCount, setStepsCount] = useState(0);
-  const [caloriesConsumed, setCaloriesConsumed] = useState(0);
-  const [activeMinutes, setActiveMinutes] = useState(0);
+  const [stepsCount, setStepsCount] = useState(5847);
+  const [caloriesConsumed, setCaloriesConsumed] = useState(1240);
+  const [activeMinutes, setActiveMinutes] = useState(32);
   const [heartRate, setHeartRate] = useState(72);
-  const [sleepData, setSleepData] = useState('0sa 0dk');
+  const [sleepData, setSleepData] = useState('7sa 24dk');
   const [healthSyncEnabled, setHealthSyncEnabled] = useState(false);
 
   const CALORIE_GOAL = 2000;
   const STEPS_GOAL = 10000;
-  const WATER_GOAL = useMemo(() => user?.waterGoal || 8, [user?.waterGoal]);
-
-  // Gerçek kalori hesaplama
-  useEffect(() => {
-    if (meals && meals.length > 0) {
-      const totalCalories = meals.reduce((sum, meal) => sum + (meal.calories || 0), 0);
-      setCaloriesConsumed(totalCalories);
-    } else {
-      setCaloriesConsumed(0);
-    }
-  }, [meals]);
-
-  // İdrar sayacını yükle
-  useEffect(() => {
-    const loadUrineCount = async () => {
-      try {
-        const { default: AsyncStorage } = await import('@react-native-async-storage/async-storage');
-        const stored = await AsyncStorage.getItem('urineCount');
-        if (stored) setUrineCount(parseInt(stored));
-      } catch (error) {
-        console.log('İdrar verisi yüklenemedi:', error);
-      }
-    };
-    loadUrineCount();
-  }, []);
+  const WATER_GOAL = 8;
 
   // Apple Health'i başlat
   useEffect(() => {
@@ -83,19 +52,11 @@ const MainScreen = ({ navigation }) => {
         console.log('✅ Apple Health başarıyla bağlandı');
       } catch (error) {
         console.log('⚠️ Apple Health başlatılamadı:', error);
-        
-        // Alert'i sadece bir kez göster
-        const { default: AsyncStorage } = await import('@react-native-async-storage/async-storage');
-        const alertShown = await AsyncStorage.getItem('appleHealthAlertShown');
-        
-        if (!alertShown) {
-          Alert.alert(
-            'Apple Health',
-            'Sağlık verilerinizi senkronize etmek için Apple Health erişimine izin verin.',
-            [{ text: 'Tamam' }]
-          );
-          await AsyncStorage.setItem('appleHealthAlertShown', 'true');
-        }
+        Alert.alert(
+          'Apple Health',
+          'Sağlık verilerinizi senkronize etmek için Apple Health erişimine izin verin.',
+          [{ text: 'Tamam' }]
+        );
       }
     };
 
@@ -157,29 +118,10 @@ const MainScreen = ({ navigation }) => {
     }
   };
 
-  // İdrar kaydı ekle
-  const handleUrinePress = async () => {
-    const newCount = urineCount + 1;
-    setUrineCount(newCount);
-    
-    // AsyncStorage'a kaydet
-    try {
-      const { default: AsyncStorage } = await import('@react-native-async-storage/async-storage');
-      await AsyncStorage.setItem('urineCount', newCount.toString());
-      console.log('🚽 İdrar kaydı:', newCount);
-    } catch (error) {
-      console.log('⚠️ İdrar kaydedilemedi:', error);
-    }
-  };
-
   const handleRefresh = async () => {
     setRefreshing(true);
     if (appleHealthSync && healthSyncEnabled) {
       await syncHealthData();
-    }
-    // Günlük öğünleri yenile
-    if (refreshTodayMeals) {
-      await refreshTodayMeals();
     }
     await new Promise(resolve => setTimeout(resolve, 800));
     setRefreshing(false);
@@ -197,13 +139,13 @@ const MainScreen = ({ navigation }) => {
       unit: 'kkal'
     },
     { 
-      id: 'urine',
-      progress: urineCount / 6,
-      color: '#FF9500',
-      label: 'İdrar',
-      value: urineCount,
-      goal: 6,
-      unit: 'kez'
+      id: 'exercise',
+      progress: activeMinutes / 60,
+      color: '#32D74B',
+      label: 'Egzersiz',
+      value: activeMinutes,
+      goal: 60,
+      unit: 'dk'
     },
     { 
       id: 'stand',
@@ -217,9 +159,9 @@ const MainScreen = ({ navigation }) => {
   ];
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={styles.safeArea}>
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { backgroundColor: colors.background }]}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl 
             refreshing={refreshing} 
@@ -230,31 +172,17 @@ const MainScreen = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
       >
         {/* iOS 18 Large Title Header */}
-        <View style={[styles.headerSection, { backgroundColor: colors.background }]}>
-          <View style={styles.headerRow}>
-            <View>
-              <Text style={[styles.largeTitle, { color: colors.text }]}>{t('mainScreen.summary')}</Text>
-              <Text style={[styles.dateSubtitle, { color: colors.secondaryText }]}>{new Date().toLocaleDateString('tr-TR', { 
-                weekday: 'long', 
-                day: 'numeric', 
-                month: 'long' 
-              })}</Text>
-            </View>
-          </View>
+        <View style={styles.headerSection}>
+          <Text style={styles.largeTitle}>Özet</Text>
+          <Text style={styles.dateSubtitle}>{new Date().toLocaleDateString('tr-TR', { 
+            weekday: 'long', 
+            day: 'numeric', 
+            month: 'long' 
+          })}</Text>
         </View>
 
-        {/* Günlük Hedef Tamamlama Mesajı */}
-        {waterCount >= WATER_GOAL && (
-          <View style={[styles.achievementBanner, { backgroundColor: colors.success + '15', borderColor: colors.success }]}>
-            <Text style={styles.achievementIcon}>🎉</Text>
-            <Text style={[styles.achievementText, { color: colors.success }]}>
-              {t('mainScreen.waterGoal')} 🏆
-            </Text>
-          </View>
-        )}
-
         {/* Activity Rings Card - Apple Health Style */}
-        <View style={[styles.ringsCard, { backgroundColor: colors.cardBackground }]}>
+        <View style={styles.ringsCard}>
           <View style={styles.ringsContainer}>
             <ActivityRings rings={rings} />
           </View>
@@ -262,8 +190,8 @@ const MainScreen = ({ navigation }) => {
             {rings.map(ring => (
               <View key={ring.id} style={styles.ringStatRow}>
                 <View style={[styles.ringDot, { backgroundColor: ring.color }]} />
-                <Text style={[styles.ringStatLabel, { color: colors.text }]}>{ring.label}</Text>
-                <Text style={[styles.ringStatValue, { color: colors.secondaryText }]}>
+                <Text style={styles.ringStatLabel}>{ring.label}</Text>
+                <Text style={styles.ringStatValue}>
                   {ring.value} / {ring.goal} {ring.unit}
                 </Text>
               </View>
@@ -279,18 +207,7 @@ const MainScreen = ({ navigation }) => {
             unit="bardak"
             label="Su"
             color="#0A84FF"
-            goal={WATER_GOAL}
             onPress={handleWaterPress}
-            colors={colors}
-          />
-          <MetricCard
-            icon="urine"
-            value={urineCount}
-            unit="kez"
-            label="İdrar"
-            color="#FF9500"
-            onPress={handleUrinePress}
-            colors={colors}
           />
           <MetricCard
             icon="steps"
@@ -298,7 +215,6 @@ const MainScreen = ({ navigation }) => {
             unit="adım"
             label="Adımlar"
             color="#32D74B"
-            colors={colors}
           />
           <MetricCard
             icon="heart"
@@ -306,7 +222,6 @@ const MainScreen = ({ navigation }) => {
             unit="bpm"
             label="Kalp Atışı"
             color="#FF3B30"
-            colors={colors}
           />
           <MetricCard
             icon="sleep"
@@ -314,81 +229,77 @@ const MainScreen = ({ navigation }) => {
             unit=""
             label="Uyku"
             color="#BF5AF2"
-            colors={colors}
           />
         </View>
 
         {/* Quick Actions - iOS Style */}
         <View style={styles.quickActionsSection}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Hızlı İşlemler</Text>
+          <Text style={styles.sectionTitle}>Hızlı İşlemler</Text>
           <View style={styles.quickActionsGrid}>
             <QuickActionButton
               icon="meal"
               label="Yemek Ekle"
               color="#FF9500"
               onPress={() => navigation.navigate('AddMeal')}
-              colors={colors}
             />
             <QuickActionButton
               icon="glucose"
-              label={t('mainScreen.measureGlucose')}
+              label="Şeker Ölç"
               color="#FF3B30"
               onPress={() => navigation.navigate('BloodSugar')}
-              colors={colors}
             />
             <QuickActionButton
-              icon="urine"
-              label="İdrar Takibi"
-              color="#FF9500"
-              onPress={() => navigation.navigate('UrineTracker')}
-              colors={colors}
+              icon="exercise"
+              label="Egzersiz"
+              color="#32D74B"
+              onPress={() => {}}
             />
             <QuickActionButton
               icon="chart"
               label="İstatistik"
               color="#0A84FF"
-              onPress={() => navigation.navigate('LibreStats')}
-              colors={colors}
+              onPress={() => navigation.navigate('Profile')}
             />
           </View>
         </View>
 
         {/* Today's Summary */}
-        <View style={[styles.summaryCard, { backgroundColor: colors.cardBackground }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>{t('mainScreen.todaySummary')}</Text>
+        <View style={styles.summaryCard}>
+          <Text style={styles.cardTitle}>Bugünün Özeti</Text>
           <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, { color: colors.secondaryText }]}>Alınan Kalori</Text>
-            <Text style={[styles.summaryValue, { color: colors.text }]}>{caloriesConsumed} kkal</Text>
+            <Text style={styles.summaryLabel}>Alınan Kalori</Text>
+            <Text style={styles.summaryValue}>{caloriesConsumed} kkal</Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, { color: colors.secondaryText }]}>Kalan Kalori</Text>
-            <Text style={[styles.summaryValue, { color: colors.text }]}>{CALORIE_GOAL - caloriesConsumed} kkal</Text>
+            <Text style={styles.summaryLabel}>Kalan Kalori</Text>
+            <Text style={styles.summaryValue}>{CALORIE_GOAL - caloriesConsumed} kkal</Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, { color: colors.secondaryText }]}>Aktif Dakika</Text>
-            <Text style={[styles.summaryValue, { color: colors.text }]}>{activeMinutes} dk</Text>
+            <Text style={styles.summaryLabel}>Aktif Dakika</Text>
+            <Text style={styles.summaryValue}>{activeMinutes} dk</Text>
           </View>
         </View>
 
         {/* Menu Cards */}
         <View style={styles.menuSection}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Sağlık & Fitness</Text>
+          <Text style={styles.sectionTitle}>Sağlık & Fitness</Text>
           {[
-            { title: t('mainScreen.dietPlan'), icon: 'calendar', screen: 'DietPlanner', color: '#FF9500' },
-            { title: t('mainScreen.recipes'), icon: 'meal', screen: 'HealthyRecipes', color: '#32D74B' },
-            { title: t('mainScreen.glucoseTracking'), icon: 'heart', screen: 'GlucoseCalendar', color: '#FF3B30' },
+            { title: 'Diyet Planı', icon: 'calendar', screen: 'DietPlanner', color: '#FF9500' },
+            { title: 'Sağlıklı Tarifler', icon: 'meal', screen: 'HealthyRecipes', color: '#32D74B' },
+            { title: 'Glukoz Takibi', icon: 'heart', screen: 'GlucoseCalendar', color: '#FF3B30' },
+            { title: 'Ayarlar', icon: 'settings', screen: 'Profile', color: '#8E8E93' },
           ].map((item, index) => (
             <Pressable
               key={index}
-              style={[styles.menuCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
+              style={styles.menuCard}
               onPress={() => navigation.navigate(item.screen)}
             >
               <View style={[styles.menuIconCircle, { backgroundColor: item.color + '15' }]}>
                 <HealthIcon name={item.icon} size={24} color={item.color} />
               </View>
-              <Text style={[styles.menuTitle, { color: colors.text }]}>{item.title}</Text>
+              <Text style={styles.menuTitle}>{item.title}</Text>
               <Svg width={20} height={20} viewBox="0 0 24 24">
-                <Path d="M9 6l6 6-6 6" stroke={colors.secondaryText} strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                <Path d="M9 6l6 6-6 6" stroke="#C7C7CC" strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
               </Svg>
             </Pressable>
           ))}
@@ -405,7 +316,6 @@ const MainScreen = ({ navigation }) => {
 const HealthIcon = ({ name, size = 24, color = '#000' }) => {
   const iconPaths = {
     water: "M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z",
-    urine: "M12 3c-1.1 0-2 .9-2 2v7c0 2.76 2.24 5 5 5h2v2h-2v2h2c1.1 0 2-.9 2-2v-2h1v-2h-1v-1c0-1.1-.9-2-2-2h-3c-.55 0-1-.45-1-1V5c0-1.1-.9-2-2-2zm-5 9v2c0 2.21 1.79 4 4 4h1v2H9c-3.31 0-6-2.69-6-6v-2h4z",
     steps: "M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7",
     heart: "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z",
     sleep: "M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z",
@@ -472,26 +382,24 @@ const ActivityRings = ({ rings }) => {
 };
 
 // Metric Card Component
-const MetricCard = ({ icon, value, unit, label, color, onPress, goal, colors }) => {
-  return (
-    <Pressable style={[styles.metricCard, { backgroundColor: colors?.cardBackground || '#FFFFFF' }]} onPress={onPress}>
-      <View style={[styles.iconCircle, { backgroundColor: color }]}>
-        <HealthIcon name={icon} size={28} color="#FFFFFF" />
-      </View>
-      <Text style={[styles.metricValue, { color: colors?.text || '#000000' }]}>{value}</Text>
-      {unit ? <Text style={[styles.metricUnit, { color: colors?.secondaryText || '#8E8E93' }]}>{unit}</Text> : null}
-      <Text style={[styles.metricLabel, { color: colors?.secondaryText || '#8E8E93' }]}>{label}</Text>
-    </Pressable>
-  );
-};
+const MetricCard = ({ icon, value, unit, label, color, onPress }) => (
+  <Pressable style={styles.metricCard} onPress={onPress}>
+    <View style={[styles.iconCircle, { backgroundColor: color }]}>
+      <HealthIcon name={icon} size={28} color="#FFFFFF" />
+    </View>
+    <Text style={styles.metricValue}>{value}</Text>
+    {unit ? <Text style={styles.metricUnit}>{unit}</Text> : null}
+    <Text style={styles.metricLabel}>{label}</Text>
+  </Pressable>
+);
 
 // Quick Action Button
-const QuickActionButton = ({ icon, label, color, onPress, colors }) => (
+const QuickActionButton = ({ icon, label, color, onPress }) => (
   <Pressable style={styles.quickActionBtn} onPress={onPress}>
     <View style={[styles.quickActionIcon, { backgroundColor: color }]}>
       <HealthIcon name={icon} size={32} color="#FFFFFF" />
     </View>
-    <Text style={[styles.quickActionLabel, { color: colors?.text || '#000000' }]}>{label}</Text>
+    <Text style={styles.quickActionLabel}>{label}</Text>
   </Pressable>
 );
 
@@ -507,37 +415,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: Platform.OS === 'ios' ? 0 : 20,
     paddingBottom: 16,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  themeToggle: {
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: 'rgba(142, 142, 147, 0.12)',
-  },
-  themeIcon: {
-    fontSize: 24,
-  },
-  achievementBanner: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  achievementIcon: {
-    fontSize: 24,
-    marginRight: 12,
-  },
-  achievementText: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '600',
   },
   largeTitle: {
     fontSize: 34,
@@ -605,11 +482,11 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   metricCard: {
-    width: '31%',
-    minWidth: 100,
+    flex: 1,
+    minWidth: '47%',
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 12,
+    padding: 16,
     alignItems: 'center',
     ...Platform.select({
       ios: {
@@ -647,32 +524,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#8E8E93',
     textAlign: 'center',
-  },
-  waterProgressContainer: {
-    width: '100%',
-    marginTop: 12,
-  },
-  waterProgressTrack: {
-    width: '100%',
-    height: 6,
-    backgroundColor: '#E5E5EA',
-    borderRadius: 3,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  waterProgressFill: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    height: '100%',
-    borderRadius: 3,
-  },
-  waterProgressExtra: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    height: '100%',
-    borderRadius: 3,
   },
   quickActionsSection: {
     marginBottom: 24,
